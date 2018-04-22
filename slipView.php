@@ -4,7 +4,9 @@
 	if(!isset($_SESSION["userid"])) {
 		header("Location:COBMastermenu.php");
 	}
-	require_once ('COBconnect.php');
+	include ("COBfolder.php");
+	if (!file_exists($pfolder)) {$pfolder="";}
+	require ($pfolder . 'COBconnect.php');
 	$charset = 'utf8';
 	$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 	$opt = [

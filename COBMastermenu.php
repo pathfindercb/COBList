@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!-- COBDelta 04/18/18 -->
+<!-- COBDelta 04/22/18 -->
 <!--	This is the main web index for all the COBList master file maintenance using a form to select-->
 
 <html>
@@ -53,9 +53,6 @@
 			// check if entered userid is in RunData & Admin from a prior run
 			if ($mCOB->CheckUserID($_POST["userid"],$msg)) {
 				$row = array($_POST["username"],$_POST["userid"]);
-			// for now also just hardcode the password
-//			} elseif ($_POST["userid"] == "888") {
-//				$row = array("Admin","888");
 			}
 			if(is_array($row)) {
 				$_SESSION["username"] = $row[0];
@@ -78,14 +75,16 @@
 	<?php if(isset($fmsg)){ ?><div class="alert alert-danger" role="alert"> <?php echo $fmsg; ?> </div><?php } ?>
 		<form name="frmReport" method="post" class="form-horizontal col-xs-12">
 		<h2>COBMaster Maintenance</h2>
-			<div class="form-group ">
-			<input type="button" class="btn btn-primary" value="Slip Master" onClick="window.location='slipView.php';"/>
+			<div class="col-xs-4">
+			<div class="form-group">
+			<input type="button" class="btn btn-primary btn-block" value="Slip Master" onClick="window.location='slipView.php';"/>
 			</div>
-			<div class="form-group ">
-			<input type="button" class="btn btn-primary" value="Rate Master" onClick="window.location='rateView.php';"/>
+			<div class="form-group">
+			<input type="button" class="btn btn-primary btn-block" value="Rate Master" onClick="window.location='rateView.php';"/>
 			</div>
-			<div class="form-group ">
-			<input type="button" class="btn btn-primary" value="Unit Master" onClick="window.location='unitView.php';"/>
+			<div class="form-group">
+			<input type="button" class="btn btn-primary btn-block" value="Unit Master" onClick="window.location='unitView.php';"/>
+			</div>
 			</div>
 		</form>
 	</div>
