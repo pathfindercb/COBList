@@ -1,34 +1,43 @@
 <?php
+/** PAI COB Rate Create
+ * package    PAI_COBList 20180430
+ * @license   Copyright © 2018 Pathfinder Associates, Inc.
+ *	opens the coblist db and adds to the rate table
+ *	called by COBMastermenu.php after login
+ */
+
  	// check if logged in 
 	session_start();
 	if(!isset($_SESSION["userid"])) {
 		header("Location:COBMastermenu.php");
 	}
-	include ("COBfolder.php");
-	if (!file_exists($pfolder)) {$pfolder="";}
-	require ($pfolder . 'COBconnect.php');
-	$charset = 'utf8';
-	$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-	$opt = [
-		PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-		PDO::ATTR_EMULATE_PREPARES   => false,
-	];
-	$pdo = new PDO($dsn, $user, $pass, $opt);
 
+	require ("COBdbopen.php");
+
+	// queries the RateMaster table and returns array of rate classes For Master
+	$sql = "SELECT class FROM RateMaster ORDER BY class";
+	$stmt = $pdo->prepare($sql);
+	$stmt->execute();
+	$classes = $stmt->fetchALL(PDO::FETCH_COLUMN);
+	
 	if(isset($_POST) & !empty($_POST)){
-	$class = ($_POST['class']);
-	$rate = ($_POST['rate']);
-	$date = ($_POST['date']);
+		$class = ($_POST['class']);
+		$rate = ($_POST['rate']);
+		$date = ($_POST['date']);
 
-	$Sql = "INSERT INTO `RateMaster` (class, rate, date) VALUES ('$class', '$rate', '$date')";
-	$res = $pdo->prepare($Sql);
-	if($res->execute()){
-		header('location: rateView.php');
-	}else{
-		$fmsg = "Failed to update data.";
+		if (in_array($class,$classes)) {
+			$fmsg = "This class already in Rate Master - please use Edit";
+		} else {
+			$Sql = "INSERT INTO `RateMaster` (class, rate, date) VALUES ('$class', '$rate', '$date')";
+			$res = $pdo->prepare($Sql);
+			if($res->execute()){
+				header('location: rateView.php');
+			}else{
+				$fmsg = "Failed to update data.";
+			}
+		}
 	}
-}?>
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -69,7 +78,7 @@
 			<div class="form-group">
 			    <label for="input1" class="col-sm-2 control-label">Date</label>
 			    <div class="col-sm-6">
-			      <input type="date" name="date"  class="form-control" id="input1" value="<?php echo $r['date']; ?>" placeholder="Date" />
+			      <input type="date" name="date"  class="form-control" id="input1" value="<?php echo date('Y-m-j'); ?>" placeholder="Date" />
 			    </div>
 			</div>
 

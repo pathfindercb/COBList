@@ -1,45 +1,54 @@
 <?php
+/** PAI COB Slip Create
+ * package    PAI_COBList 20180430
+ * @license   Copyright © 2018 Pathfinder Associates, Inc.
+ *	opens the coblist db and ads to the slip table
+ *	called by COBMastermenu.php after login
+ */
+
  	// check if logged in 
 	session_start();
 	if(!isset($_SESSION["userid"])) {
 		header("Location:COBMastermenu.php");
 	}
-	include ("COBfolder.php");
-	if (!file_exists($pfolder)) {$pfolder="";}
-	require ($pfolder . 'COBconnect.php');
-	$charset = 'utf8';
-	$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-	$opt = [
-		PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-		PDO::ATTR_EMULATE_PREPARES   => false,
-	];
-	$pdo = new PDO($dsn, $user, $pass, $opt);
+
+	require ("COBdbopen.php");
 	
-	// queries the RateMaster table and returns array of rate class For Master
+	// queries the RateMaster table and returns array of rate classes For Master
 	$sql = "SELECT class FROM RateMaster ORDER BY class";
 	$stmt = $pdo->prepare($sql);
 	$stmt->execute();
-	$rates = $stmt->fetchALL(PDO::FETCH_ASSOC);
+	$classes = $stmt->fetchALL(PDO::FETCH_ASSOC);
 
+	// queries the SlipMaster table and returns array of slipid For Master
+	$sql = "SELECT slipid FROM SlipMaster";
+	$stmt = $pdo->prepare($sql);
+	$stmt->execute();
+	$slips = $stmt->fetchALL(PDO::FETCH_COLUMN);
+	
 
 	if(isset($_POST) & !empty($_POST)){
-	$slipid = ($_POST['slipid']);
-	$type = ($_POST['type']);
-	$dock = ($_POST['dock']);
-	$class = ($_POST['class']);
-	$scondition = ($_POST['scondition']);
-	$width = ($_POST['width']);
-	$depth = ($_POST['depth']);
+		$slipid = ($_POST['slipid']);
+		$type = ($_POST['type']);
+		$dock = ($_POST['dock']);
+		$class = ($_POST['class']);
+		$scondition = ($_POST['scondition']);
+		$width = ($_POST['width']);
+		$depth = ($_POST['depth']);
 
-	$Sql = "INSERT INTO `SlipMaster` (slipid, type, dock, class, scondition, width, depth) VALUES ('$slipid', '$type', '$dock', '$class', '$scondition', '$width', '$depth')";
-	$res = $pdo->prepare($Sql);
-	if($res->execute()){
-		header('location: slipView.php');
-	}else{
-		$fmsg = "Failed to update data.";
+		if (in_array($slipid,$slips)) {
+			$fmsg = "This slip already in Slip Master - please use Edit";
+		} else {
+			$Sql = "INSERT INTO `SlipMaster` (slipid, type, dock, class, scondition, width, depth) VALUES ('$slipid', '$type', '$dock', '$class', '$scondition', '$width', '$depth')";
+			$res = $pdo->prepare($Sql);
+			if($res->execute()){
+				header('location: slipView.php');
+			}else{
+				$fmsg = "Failed to update data.";
+			}
+		}
 	}
-}?>
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -98,9 +107,10 @@
 			<div class="col-sm-6">
 				<select name="class" class="form-control">
 <?php
-				// fill Was dates skipping the latest
-				foreach ($rates as $r) {
-					echo '<option value="' . $r['class'] . '">' . $r['class'] . '</option>';
+				// fill rate class
+				foreach ($classes as $mclass) {
+					$sel = ($r['class'] == $mclass['class']) ? " selected " : "";
+					echo '<option value="' . $mclass['class'] .'"' . $sel . '">' . $mclass['class'] . '</option>';
 				}
 ?>
 				</select>

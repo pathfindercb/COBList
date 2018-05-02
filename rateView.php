@@ -1,22 +1,20 @@
 <?php
+/** PAI COB Rate View
+ * package    PAI_COBList 20180430
+ * @license   Copyright © 2018 Pathfinder Associates, Inc.
+ *	opens the coblist db and view the rate table
+ *	called by COBMastermenu.php after login
+ */
+
  	// check if logged in 
 	session_start();
 	if(!isset($_SESSION["userid"])) {
 		header("Location:COBMastermenu.php");
 	}
-	include ("COBfolder.php");
-	if (!file_exists($pfolder)) {$pfolder="";}
-	require ($pfolder . 'COBconnect.php');
-	$charset = 'utf8';
-	$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-	$opt = [
-		PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-		PDO::ATTR_EMULATE_PREPARES   => false,
-	];
-	$pdo = new PDO($dsn, $user, $pass, $opt);
 
-	$perpage = 5; // set this in class
+	require ("COBdbopen.php");
+
+	$perpage = 15; // set this in class
 if(isset($_GET['page']) & !empty($_GET['page'])){
 	$curpage = $_GET['page'];
 }else{
@@ -33,7 +31,7 @@ $startpage = 1;
 $nextpage = $curpage + 1;
 $previouspage = $curpage - 1;
 
-$ReadSql = "SELECT * FROM `RateMaster` LIMIT $start, $perpage";
+$ReadSql = "SELECT * FROM `RateMaster` ORDER BY class LIMIT $start, $perpage";
 $res = $pdo->prepare($ReadSql);
 $res->execute();
 ?>
@@ -98,7 +96,7 @@ $res->execute();
 					          <p>Are you sure?</p>
 					        </div>
 					        <div class="modal-footer">
-					          <a href="rateDelete.php?id=<?php echo $r['class']; ?>"><button type="button" class="btn btn-danger">Delete</button></a>
+					          <a href="rateDelete.php?class=<?php echo $r['class']; ?>"><button type="button" class="btn btn-danger">Delete</button></a>
 					          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
 					        </div>
 					      </div>

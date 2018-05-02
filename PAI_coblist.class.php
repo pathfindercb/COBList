@@ -1,6 +1,6 @@
 <?php
 /** PAI_coblist class file
- * package    PAI_COBList 20180422
+ * package    PAI_COBList 20180423
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  * Public Methods: 
  *		CheckFile-checks uploaded CSV for format and size
@@ -15,7 +15,7 @@ class COBList
      * main class
      */   
 	// Private Variables //
-		const iVersion = "4.0.0";
+		const iVersion = "4.0.1";
 		private $dbUser = array();
 		private $hdrUser = array();
 		private $dbRes = array();
@@ -137,8 +137,8 @@ class COBList
 		//set up encryption
 		include ("PAI_crypt.class.php");
 		//get the secret key and nonce not stored in www folders
-		include ("COBfolder.php");
-		if (!file_exists($pfolder)) {$pfolder="";}
+		if (file_exists("COBfolder.php")) {include ("COBfolder.php");}
+		if (!isset($pfolder)) {$pfolder="";}
 		require_once ($pfolder . 'COBkey.php');
 		$this->paicrypt = new PAI_crypt($COBkey,$COBnonce);
 	}
@@ -578,8 +578,8 @@ class COBList
 					$statement->execute($valarray);
 					
 				} else {
-					// if slip has L then strip off L and set lift  = true
-					if (stripos($slip,"L")){
+					// if slip has L or T then strip off and set lift  = true
+					if (preg_match("/[TL]/", $slip)){
 						$lift = 1;
 						$slip = substr_replace(trim($slip) ,"",-1);
 					} else {
@@ -599,6 +599,16 @@ class COBList
 								$email = $this->GetEmail($row[self::iEmail]);
 							}
 						}
+					//Check if this slip is in SlipMaster report error
+					$sql = "SELECT * FROM SlipMaster WHERE slipid = ?" ;
+					$stmt = $this->pdo->prepare ($sql);
+					$stmt->execute([trim($slip)]);
+					$result = $stmt->fetch();
+					if (!$result) {
+						//found slip doesn't exists so report error
+						$this->addError('1','Slip not found',$row[self::iUnit],$slip,'Slip not in SlipMaster');
+					}
+				
 					//Check if this slip already assigned to this unit and report error
 					$sql = "SELECT * FROM Slips WHERE slipid = ?" ;
 					$stmt = $this->pdo->prepare ($sql);
@@ -1249,8 +1259,8 @@ function opendb() {
 	//function to open PDO database and return PDO object
 	if (isset($this->pdo)) {return true;}
 	// first include file containing host, db, user, password so not in www folder
-	include ("COBfolder.php");
-	if (!file_exists($pfolder)) {$pfolder="";}
+	if (file_exists("COBfolder.php")) {include ("COBfolder.php");}
+	if (!isset($pfolder)) {$pfolder="";}
 	require ($pfolder . 'COBconnect.php');
 	$charset = 'utf8';
 	$dsn = "mysql:host={$host};dbname={$db};charset={$charset}";

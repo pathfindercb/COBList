@@ -1,26 +1,24 @@
 <?php
+/** PAI COB Slip update
+ * package    PAI_COBList 20180430
+ * @license   Copyright © 2018 Pathfinder Associates, Inc.
+ *	opens the coblist db and updates the slip table
+ *	called by COBMastermenu.php after login
+ */
+
  	// check if logged in 
 	session_start();
 	if(!isset($_SESSION["userid"])) {
 		header("Location:COBMastermenu.php");
 	}
 
-	include ("COBfolder.php");
-	if (!file_exists($pfolder)) {$pfolder="";}
-	require ($pfolder . 'COBconnect.php');
-	$charset = 'utf8';
-	$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-	$opt = [
-		PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-		PDO::ATTR_EMULATE_PREPARES   => false,
-	];
-	$pdo = new PDO($dsn, $user, $pass, $opt);
-	// queries the RateMaster table and returns array of rate class For Master
+	require ("COBdbopen.php");
+
+	// queries the RateMaster table and returns array of rate classes For Master
 	$sql = "SELECT class FROM RateMaster ORDER BY class";
 	$stmt = $pdo->prepare($sql);
 	$stmt->execute();
-	$rates = $stmt->fetchALL(PDO::FETCH_ASSOC);
+	$classes = $stmt->fetchALL(PDO::FETCH_ASSOC);
 
 $slipid = $_GET['slipid'];
 $SelSql = "SELECT * FROM `SlipMaster` WHERE slipid=:slipid";
@@ -70,7 +68,7 @@ if(isset($_POST) & !empty($_POST)){
 			<div class="form-group">
 			    <label for="input1" class="col-sm-2 control-label">Slip</label>
 			    <div class="col-sm-6">
-			      <input type="text" name="slipid"  class="form-control" id="input1" value="<?php echo $r['slipid']; ?>" placeholder="slipid" />
+			      <input type="text" name="slipid"  class="form-control" id="input1" readonly value="<?php echo $r['slipid']; ?>" placeholder="slipid" />
 			    </div>
 			</div>
 
@@ -79,8 +77,8 @@ if(isset($_POST) & !empty($_POST)){
 			<div class="col-sm-6">
 				<select name="type" class="form-control">
 					<option>Select Type</option>
-					<option value="Slip" <?php if($r['type'] == 'Slip'){ echo "selected";} ?> >Slip</option>
-					<option value="Kayak" <?php if($r['type'] == 'Kayak'){ echo "selected";} ?> >Kayak</option>
+					<option value="Slip" <?php if($r['type'] == 'Slip'){ echo " selected ";} ?> >Slip</option>
+					<option value="Kayak" <?php if($r['type'] == 'Kayak'){ echo " selected ";} ?> >Kayak</option>
 				</select>
 			</div>
 			</div>
@@ -91,8 +89,8 @@ if(isset($_POST) & !empty($_POST)){
 				<select name="dock" class="form-control">
 					<option>Select Dock</option>
 					<option value="MS" <?php if($r['dock'] == 'MS'){ echo "selected";} ?> >MS</option>
-					<option value="North Dock" <?php if($r['dock'] == 'North Dock'){ echo "selected";} ?> >North Dock</option>
-					<option value="South Dock" <?php if($r['dock'] == 'South Dock'){ echo "selected";} ?> >South Dock</option>
+					<option value="North Dock" <?php if($r['dock'] == 'North Dock'){ echo " selected ";} ?> >North Dock</option>
+					<option value="South Dock" <?php if($r['dock'] == 'South Dock'){ echo " selected ";} ?> >South Dock</option>
 				</select>
 			</div>
 			</div>
@@ -102,9 +100,10 @@ if(isset($_POST) & !empty($_POST)){
 			<div class="col-sm-6">
 				<select name="class" class="form-control">
 <?php
-				// fill Was dates skipping the latest
-				foreach ($rates as $r) {
-					echo '<option value="' . $r['class'] . '">' . $r['class'] . '</option>';
+				// fill rate class
+				foreach ($classes as $mclass) {
+					$sel = ($r['class'] == $mclass['class']) ? " selected " : "";
+					echo '<option value="' . $mclass['class'] .'"' . $sel . '">' . $mclass['class'] . '</option>';
 				}
 ?>
 				</select>

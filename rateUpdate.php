@@ -1,20 +1,19 @@
 <?php
+/** PAI COB Rate Update
+ * package    PAI_COBList 20180430
+ * @license   Copyright © 2018 Pathfinder Associates, Inc.
+ *	opens the coblist db and updates the rate table
+ *	called by COBMastermenu.php after login
+ */
+
  	// check if logged in 
 	session_start();
 	if(!isset($_SESSION["userid"])) {
 		header("Location:COBMastermenu.php");
 	}
-	include ("COBfolder.php");
-	if (!file_exists($pfolder)) {$pfolder="";}
-	require ($pfolder . 'COBconnect.php');
-	$charset = 'utf8';
-	$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-	$opt = [
-		PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-		PDO::ATTR_EMULATE_PREPARES   => false,
-	];
-	$pdo = new PDO($dsn, $user, $pass, $opt);
+
+	require ("COBdbopen.php");
+
 
 $class = $_GET['class'];
 $SelSql = "SELECT * FROM `RateMaster` WHERE class=:class";
@@ -58,9 +57,9 @@ if(isset($_POST) & !empty($_POST)){
 		<form method="post" class="form-horizontal col-sm-6 col-sm-offset-3">
 		<h2>Update RateMaster</h2>
 			<div class="form-group">
-			<label for="input1" class="col-sm-2 control-label">Class</label>
+			    <label for="input1" class="col-sm-2 control-label">Class</label>
 			    <div class="col-sm-6">
-			      <input type="text" name="rate"  value= "<?php echo $r['class']; ?>" class="form-control" id="input1"  placeholder="Rate" />
+			      <input type="text" name="class"  class="form-control" id="input1" readonly value="<?php echo $r['class']; ?>" placeholder="Rate" />
 			    </div>
 			</div>
 

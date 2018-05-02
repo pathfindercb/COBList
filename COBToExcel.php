@@ -1,9 +1,8 @@
 <?php
-//	Process COBList 20180418
+//	Process COBList 20180430
 //	package    PAI_COBList
 //	@license        Copyright © 2018 Pathfinder Associates, Inc.
 // v4.0
- 	// check if logged in 
 
 register_shutdown_function('shutDownFunction');
 // check if logged in 
@@ -11,17 +10,8 @@ register_shutdown_function('shutDownFunction');
 	if(!isset($_SESSION["userid"])) {
 		header("Location:COBMastermenu.php");
 	}
-	include ("COBfolder.php");
-	if (!file_exists($pfolder)) {$pfolder="";}
-	require ($pfolder . 'COBconnect.php');
-	$charset = 'utf8';
-	$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-	$opt = [
-		PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-		PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-		PDO::ATTR_EMULATE_PREPARES   => false,
-	];
-	$pdo = new PDO($dsn, $user, $pass, $opt);
+
+	require ("COBdbopen.php");
 
 $mtable = $_GET['mtable'];
 $q = $pdo->prepare("DESCRIBE " . $mtable);
