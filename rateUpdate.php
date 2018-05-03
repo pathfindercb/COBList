@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Rate Update
- * package    PAI_COBList 20180430
+ * package    PAI_COBList 20180502
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and updates the rate table
  *	called by COBMastermenu.php after login
@@ -25,10 +25,10 @@ if(isset($_POST) & !empty($_POST)){
 	$rate = ($_POST['rate']);
 	$date = ($_POST['date']);
 
-	$UpdateSql = "UPDATE `ratemaster` SET class='$class', rate='$rate', date='$date' WHERE class=$class";
+	$UpdateSql = "UPDATE `ratemaster` SET class='$class', rate='$rate', date='$date' WHERE class='$class'";
 	$res = $pdo->prepare($UpdateSql);
 	if($res->execute()){
-		header('location: viewRateMaster.php');
+		header('location: rateView.php');
 	}else{
 		$fmsg = "Failed to update data.";
 	}

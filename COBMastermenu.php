@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!-- COBDelta 04/22/18 -->
+<!-- COBMaster 05/02/18 -->
 <!--	This is the main web index for all the COBList master file maintenance using a form to select-->
 
 <html>

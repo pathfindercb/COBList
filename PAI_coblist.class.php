@@ -15,7 +15,7 @@ class COBList
      * main class
      */   
 	// Private Variables //
-		const iVersion = "4.0.1";
+		const iVersion = "4.0.2";
 		private $dbUser = array();
 		private $hdrUser = array();
 		private $dbRes = array();
@@ -883,8 +883,15 @@ class COBList
 		//Creates the XL file from all the arrays
 		// Include the required Class file
 		include('PAI_xlsxwriter.class.php');
-
-		$filename = "COBList" . date('Ymd') . ".xlsx";
+		//decide on filename
+		if ($this->fullRun && $this->showInfo) {
+			$temp="";
+		} elseif ($this->fullRun) {
+			$temp = " External";
+		} else {
+			$temp = " Partial";		
+		}
+		$filename = "COBList" . date('Ymd') . $temp . ".xlsx";
 
 		header('Content-disposition: attachment; filename="'.XLSXWriter::sanitize_filename($filename).'"');
 		header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -905,7 +912,7 @@ class COBList
 		$writer = new XLSXWriter();
 		$writer->setTitle('v' . self::iVersion . ' Exported:'. date('Y-m-d H:i:s',$this->fileTime));
 		$writer->setAuthor('Chris Barlow, Pathfinder Associates, Inc. ' . self::iVersion);
-		if ($this->fullRun) {
+		if ($this->fullRun && $this->showInfo) {
 			$writer->setColWidths('Errors',array(10,20,30,20,40));
 			$writer->writeSheetHeader('Errors',$this->hdrErr,true);
 			$writer->writeSheetRow('Errors',array(date('m/d/y'),'Condo on the Bay Error Listing'),$h1style);
@@ -918,6 +925,13 @@ class COBList
 			$writer->writeSheetRow('Listing',array_keys($this->hdrRes),$hstyle);
 			$writer->writeSheet($this->dbRes,'Listing',$this->hdrRes,true);
 			
+			$writer->setColWidths('Renter',array(12,12,20,15,15,15,15,30,30,30));
+			$writer->writeSheetHeader('Renter',$this->hdrRenter,true);
+			$writer->writeSheetRow('Renter',array(date('m/d/y'),'Condo on the Bay Renter Listing'),$h1style);
+			$writer->writeSheetRow('Renter',array_keys($this->hdrRenter),$hstyle);
+			$writer->writeSheet($this->dbRenter,'Renter',$this->hdrRenter,true);
+		}
+		if ($this->fullRun)  {
 			$writer->setColWidths('Units',array(20,10,10,20,15,30,15,15,10,30,30,30,30));
 			$writer->writeSheetHeader('Units',$this->hdrUnit,true);
 			$temp = ($this->showInfo) ? 'Internal':'External';
@@ -925,29 +939,24 @@ class COBList
 			$writer->writeSheetRow('Units',array_keys($this->hdrUnit),$hstyle);
 			$writer->writeSheet($this->dbUnit,'Units',$this->hdrUnit,true);
 			
-			$writer->setColWidths('Renter',array(12,12,20,15,15,15,15,30,30,30));
-			$writer->writeSheetHeader('Renter',$this->hdrRenter,true);
-			$writer->writeSheetRow('Renter',array(date('m/d/y'),'Condo on the Bay Renter Listing'),$h1style);
-			$writer->writeSheetRow('Renter',array_keys($this->hdrRenter),$hstyle);
-			$writer->writeSheet($this->dbRenter,'Renter',$this->hdrRenter,true);
-			
-			$writer->setColWidths('Pets WSD-ESA',array(20,15,15,50,15,30,30,30));
-			$writer->writeSheetHeader('Pets WSD-ESA',$this->hdrPets,true);
-			$writer->writeSheetRow('Pets WSD-ESA',array(date('m/d/y'),$temp,'Condo on the Bay Pets & WSD/ESA Listing'),$h1style);
-			$writer->writeSheetRow('Pets WSD-ESA',array_keys($this->hdrPets),$hstyle);
-			$writer->writeSheet($this->dbPets,'Pets WSD-ESA',$this->hdrPets,true);
-			
 			$writer->setColWidths('Slips',array(12,15,15,10,6,15,20,20,6,20,40));
 			$writer->writeSheetHeader('Slips',$this->hdrSlip,true);
 			$writer->writeSheetRow('Slips',array(date('m/d/y'),$temp,'Condo on the Bay Slip Listing'),$h1style);
 			$writer->writeSheetRow('Slips',array_keys($this->hdrSlip),$hstyle);
 			$writer->writeSheet($this->dbSlip,'Slips',$this->hdrSlip,true);
 			
-			$writer->setColWidths('Kayak',array(12,15,15,10,6,10,20,20,6,20,40));
-			$writer->writeSheetHeader('Kayak',$this->hdrSlip,true);
-			$writer->writeSheetRow('Kayak',array(date('m/d/y'),$temp,'Condo on the Bay Kayak Listing'),$h1style);
-			$writer->writeSheetRow('Kayak',array_keys($this->hdrSlip),$hstyle);
-			$writer->writeSheet($this->dbKayak,'Kayak',$this->hdrSlip,true);
+			$writer->setColWidths('Kayaks',array(12,15,15,10,6,10,20,20,6,20,40));
+			$writer->writeSheetHeader('Kayaks',$this->hdrSlip,true);
+			$writer->writeSheetRow('Kayaks',array(date('m/d/y'),$temp,'Condo on the Bay Kayak Listing'),$h1style);
+			$writer->writeSheetRow('Kayaks',array_keys($this->hdrSlip),$hstyle);
+			$writer->writeSheet($this->dbKayak,'Kayaks',$this->hdrSlip,true);
+		}
+		if ($this->fullRun && $this->showInfo) {
+			$writer->setColWidths('Pets WSD-ESA',array(20,15,15,50,15,30,30,30));
+			$writer->writeSheetHeader('Pets WSD-ESA',$this->hdrPets,true);
+			$writer->writeSheetRow('Pets WSD-ESA',array(date('m/d/y'),$temp,'Condo on the Bay Pets & WSD/ESA Listing'),$h1style);
+			$writer->writeSheetRow('Pets WSD-ESA',array_keys($this->hdrPets),$hstyle);
+			$writer->writeSheet($this->dbPets,'Pets WSD-ESA',$this->hdrPets,true);
 			
 			$writer->setColWidths('Staff',array(20,15,40,40,20));
 			$writer->writeSheetHeader('Staff',$this->hdrStaff,true);
@@ -967,17 +976,17 @@ class COBList
 			$writer->writeSheetRow('Grid T2',array_keys($this->hdrGridT2),$hstyle);
 			$writer->writeSheet($this->dbGridT2,'Grid T2',$this->hdrGridT2,true);
 		}
-
-		$writer->setColWidths('Voters',array(15,30,30,30,40,30));
-		$writer->writeSheetHeader('Voters',$this->hdrVoter,true);
-		$writer->writeSheetRow('Voters',array_keys($this->hdrVoter),$hstyle);
-		$writer->writeSheet($this->dbVoter,'Voters',$this->hdrVoter,false);
-		
-		$writer->writeSheetHeader('Users',$this->hdrUser,true);
-		$writer->writeSheetRow('Users',array_keys($this->hdrUser),$hstyle);
-		$writer->writeSheet($this->dbUser,'Users',$this->hdrUser,false);
-		
-		if ($this->fullRun) {
+		if ($this->showInfo) {
+			$writer->setColWidths('Voters',array(15,30,30,30,40,30));
+			$writer->writeSheetHeader('Voters',$this->hdrVoter,true);
+			$writer->writeSheetRow('Voters',array_keys($this->hdrVoter),$hstyle);
+			$writer->writeSheet($this->dbVoter,'Voters',$this->hdrVoter,false);
+			
+			$writer->writeSheetHeader('Users',$this->hdrUser,true);
+			$writer->writeSheetRow('Users',array_keys($this->hdrUser),$hstyle);
+			$writer->writeSheet($this->dbUser,'Users',$this->hdrUser,false);
+		}
+		if ($this->fullRun && $this->showInfo) {
 			$writer->writeSheetRow('Sold',array_keys($this->hdrUser),$hstyle);
 			$writer->writeSheet($this->dbSold,'Sold',$this->hdrUser,true);
 			
