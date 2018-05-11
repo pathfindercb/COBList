@@ -1,6 +1,6 @@
 <?php
 /** PAI_coblist class file
- * package    PAI_COBList 20180423
+ * package    PAI_COBList 20180510
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  * Public Methods: 
  *		CheckFile-checks uploaded CSV for format and size
@@ -15,7 +15,7 @@ class COBList
      * main class
      */   
 	// Private Variables //
-		const iVersion = "4.0.2";
+		const iVersion = "4.0.3";
 		private $dbUser = array();
 		private $hdrUser = array();
 		private $dbRes = array();

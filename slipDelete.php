@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Slip Delete
- * package    PAI_COBList 20180430
+ * package    PAI_COBList 20180511
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and deletes from the slip table
  *	called by COBMastermenu.php after login
@@ -15,9 +15,9 @@
 	require ("COBdbopen.php");
 
 	$slipid = $_GET['slipid'];
-$DelSql = "DELETE FROM `SlipMaster` WHERE slipid=:slipid";
-$res = $pdo->prepare($DelSql);
-if($res->execute([$slipid])){
+$sql = "DELETE FROM `SlipMaster` WHERE slipid=:slipid";
+$stmt = $pdo->prepare($sql);
+if($stmt->execute([$slipid])){
 	header('location: slipView.php');
 }else{
 	echo "Failed to delete";

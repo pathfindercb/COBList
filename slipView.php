@@ -31,9 +31,9 @@ $startpage = 1;
 $nextpage = $curpage + 1;
 $previouspage = $curpage - 1;
 
-$ReadSql = "SELECT * FROM `SlipMaster` ORDER BY slipid LIMIT $start, $perpage";
-$res = $pdo->prepare($ReadSql);
-$res->execute();
+$sql = "SELECT * FROM `SlipMaster` ORDER BY slipid LIMIT $start, $perpage";
+$stmt = $pdo->prepare($sql);
+$stmt->execute();
 ?>
 <!DOCTYPE html>
 <html>
@@ -74,7 +74,7 @@ $res->execute();
 		</thead> 
 		<tbody> 
 		<?php 
-		while($r = $res->fetch(PDO::FETCH_ASSOC)){
+		while($r = $stmt->fetch(PDO::FETCH_ASSOC)){
 		?>
 			<tr> 
 				<th scope="row"><?php echo $r['slipid']; ?></th> 

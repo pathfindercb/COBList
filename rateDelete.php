@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Rate View
- * package    PAI_COBList 20180430
+ * package    PAI_COBList 20180511
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and deletes from the rate table
  *	called by COBMastermenu.php after login
@@ -15,9 +15,9 @@
 	require ("COBdbopen.php");
 
 	$class = $_GET['class'];
-	$DelSql = "DELETE FROM `RateMaster` WHERE class=:class";
-	$res = $pdo->prepare($DelSql);
-	if($res->execute([$class])){
+	$sql = "DELETE FROM `RateMaster` WHERE class=:class";
+	$stmt = $pdo->prepare($sql);
+	if($stmt->execute([$class])){
 		header('location: rateView.php');
 	}else{
 		echo "Failed to delete";

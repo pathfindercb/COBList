@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Rate Create
- * package    PAI_COBList 20180430
+ * package    PAI_COBList 20180511
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and adds to the rate table
  *	called by COBMastermenu.php after login
@@ -26,11 +26,12 @@
 		$date = ($_POST['date']);
 
 		if (in_array($class,$classes)) {
-			$fmsg = "This class already in Rate Master - please use Edit";
+			$fmsg = "This rate class already in Rate Master - please use Edit";
 		} else {
-			$Sql = "INSERT INTO `RateMaster` (class, rate, date) VALUES ('$class', '$rate', '$date')";
-			$res = $pdo->prepare($Sql);
-			if($res->execute()){
+			$sql = "INSERT INTO `RateMaster` (class, rate, date) VALUES (:class, :rate, :date)";
+			$val = array("class" => $class, "rate" => $rate, "date" => $date );
+			$stmt = $pdo->prepare($sql);
+			if($stmt->execute($val)){
 				header('location: rateView.php');
 			}else{
 				$fmsg = "Failed to update data.";
@@ -62,23 +63,23 @@
 		<form method="post" class="form-horizontal col-sm-6 col-sm-offset-3">
 		<h2>Create Rate</h2>
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Class</label>
+			    <label for="class" class="col-sm-2 control-label">Class</label>
 			    <div class="col-sm-6">
-			      <input type="text" name="class"  class="form-control" id="input1"  placeholder="Class" />
+			      <input  required type="text" name="class"  class="form-control" id="class"  placeholder="Class" />
 			    </div>
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Rate</label>
+			    <label for="rate" class="col-sm-2 control-label">Rate</label>
 			    <div class="col-sm-6">
-			      <input type="text" name="rate"  class="form-control" id="input1"  placeholder="Rate" />
+			      <input  required type="text" name="rate"  class="form-control" id="rate"  placeholder="Rate" />
 			    </div>
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Date</label>
+			    <label for="date" class="col-sm-2 control-label">Date</label>
 			    <div class="col-sm-6">
-			      <input type="date" name="date"  class="form-control" id="input1" value="<?php echo date('Y-m-j'); ?>" placeholder="Date" />
+			      <input type="date" name="date"  class="form-control" id="date" value="<?php echo date('Y-m-d'); ?>" placeholder="Date" />
 			    </div>
 			</div>
 

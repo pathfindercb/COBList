@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Unit View
- * package    PAI_COBList 20180430
+ * package    PAI_COBList 20180511
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and view the unit table
  *	called by COBMastermenu.php after login
@@ -31,9 +31,9 @@ $startpage = 1;
 $nextpage = $curpage + 1;
 $previouspage = $curpage - 1;
 
-$ReadSql = "SELECT * FROM `UnitMaster` ORDER BY unit LIMIT $start, $perpage";
-$res = $pdo->prepare($ReadSql);
-$res->execute();
+$sql = "SELECT * FROM `UnitMaster` ORDER BY unit LIMIT $start, $perpage";
+$stmt = $pdo->prepare($sql);
+$stmt->execute();
 ?>
 <!DOCTYPE html>
 <html>
@@ -69,14 +69,14 @@ $res->execute();
 				<th>Model</th> 
 				<th>SqFt</th> 
 				<th>Bed/Bath</th> 
-				<th>Vote%</th> 
+				<th>Fee%</th> 
 				<th>Bldg</th> 
 				<th>PropID</th> 
 			</tr> 
 		</thead> 
 		<tbody> 
 		<?php 
-		while($r = $res->fetch(PDO::FETCH_ASSOC)){
+		while($r = $stmt->fetch(PDO::FETCH_ASSOC)){
 		?>
 			<tr> 
 				<th scope="row"><?php echo $r['unit']; ?></th> 
@@ -84,7 +84,7 @@ $res->execute();
 				<td><?php echo $r['model']; ?></td> 
 				<td><?php echo $r['sqft']; ?></td> 
 				<td><?php echo $r['beds'] . '/' . $r['baths']; ?></td> 
-				<td><?php echo $r['vote']; ?></td> 
+				<td><?php echo $r['fee']; ?></td> 
 				<td><?php echo $r['bldg']; ?></td> 
 				<td><a <?php echo "href='http://www.sc-pa.com/propertysearch/parcel/details/" . $r['propid'] . "' target='_blank'>". $r['propid']; ?> </a></td> 
 			</tr> 

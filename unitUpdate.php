@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Unit Update
- * package    PAI_COBList 20180430
+ * package    PAI_COBList 20180511
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and updates the unit table
  *	called by COBMastermenu.php after login
@@ -16,21 +16,26 @@
 
 $unit = $_GET['unit'];
 
-$SelSql = "SELECT * FROM `UnitMaster` WHERE unit=:unit";
-$res = $pdo->prepare($SelSql);
-$res->execute([$unit]);
-$r = $res->fetch(PDO::FETCH_ASSOC);
+$sql = "SELECT * FROM `UnitMaster` WHERE unit=:unit";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$unit]);
+$r = $stmt->fetch(PDO::FETCH_ASSOC);
+//if not found then exit
+if (!$r) {header('location: unitView.php');}
+
 if(isset($_POST) & !empty($_POST)){
 	$unit = ($_POST['unit']);
 	$floor = ($_POST['floor']);
 	$stack = ($_POST['stack']);
 	$space = ($_POST['space']);
 	$bldg = ($_POST['bldg']);
+	$fee = ($_POST['fee']);
 	$propid = ($_POST['propid']);
 
-	$UpdateSql = "UPDATE `UnitMaster` SET unit='$unit', floor='$floor', stack='$stack', space='$space', bldg='$bldg', propid='$propid' WHERE unit='$unit'";
-	$res = $pdo->prepare($UpdateSql);
-	if($res->execute()){
+	$sql = "UPDATE `UnitMaster` SET floor=:floor, stack=:stack, space=:space, bldg=:bldg, fee=:fee, propid=:propid WHERE unit=:unit";
+	$val = array("unit" => $unit, "floor" => $floor, "stack" => $stack, "space" => $space, "bldg" => $bldg, "fee" => $fee, "propid" => $propid );
+	$stmt = $pdo->prepare($sql);
+	if($stmt->execute()){
 		header('location: unitView.php');
 	}else{
 		$fmsg = "Failed to update data.";
@@ -60,9 +65,9 @@ if(isset($_POST) & !empty($_POST)){
 		<form method="post" class="form-horizontal col-md-6 col-md-offset-3">
 		<h2>Update UnitMaster</h2>
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Unit</label>
+			    <label for="unit" class="col-sm-2 control-label">Unit</label>
 			    <div class="col-sm-10">
-			      <input type="text" name="unit"  class="form-control" id="input1" value="<?php echo $r['unit']; ?>" placeholder="unit" />
+			      <input type="text" name="unit"  class="form-control" id="unit" value="<?php echo $r['unit']; ?>" readonly placeholder="unit" />
 			    </div>
 			</div>
 
@@ -70,7 +75,6 @@ if(isset($_POST) & !empty($_POST)){
 			<label for="input1" class="col-sm-2 control-label">Floor</label>
 			<div class="col-sm-10">
 				<select name="type" class="form-control">
-					<option>Select Floor</option>
 					<option value="1" <?php if($r['floor'] == '1'){ echo "selected";} ?> >1</option>
 					<option value="2" <?php if($r['floor'] == '2'){ echo "selected";} ?> >2</option>
 					<option value="3" <?php if($r['floor'] == '3'){ echo "selected";} ?> >3</option>
@@ -97,7 +101,6 @@ if(isset($_POST) & !empty($_POST)){
 			<label for="input1" class="col-sm-2 control-label">Stack</label>
 			<div class="col-sm-10">
 				<select name="Stack" class="form-control">
-					<option>Select Stack</option>
 					<option value="01" <?php if($r['stack'] == '01'){ echo "selected";} ?> >01</option>
 					<option value="02" <?php if($r['stack'] == '02'){ echo "selected";} ?> >02</option>
 					<option value="03" <?php if($r['stack'] == '03'){ echo "selected";} ?> >03</option>
@@ -119,9 +122,9 @@ if(isset($_POST) & !empty($_POST)){
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Space</label>
+			    <label for="space" class="col-sm-2 control-label">Space</label>
 			    <div class="col-sm-10">
-			      <input type="space" name="space"  class="form-control" id="input1" value="<?php echo $r['space']; ?>" placeholder="Space" />
+			      <input type="space" name="space"  class="form-control" id="space" value="<?php echo $r['space']; ?>" required placeholder="Space" />
 			    </div>
 			</div>
 
@@ -129,7 +132,6 @@ if(isset($_POST) & !empty($_POST)){
 			<label for="input1" class="col-sm-2 control-label">Bldg</label>
 			<div class="col-sm-10">
 				<select name="bldg" class="form-control">
-					<option>Select Building</option>
 					<option value="Tower 1" <?php if($r['bldg'] == 'Tower 1'){ echo "selected";} ?> >Tower 1</option>
 					<option value="Tower 2" <?php if($r['bldg'] == 'Tower 2'){ echo "selected";} ?> >Tower 2</option>
 					<option value="Marina Suites" <?php if($r['bldg'] == 'Marina Suites'){ echo "selected";} ?> >Marina Suites</option>
@@ -138,9 +140,16 @@ if(isset($_POST) & !empty($_POST)){
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">PropID</label>
+			    <label for="fee" class="col-sm-2 control-label">Fee%</label>
 			    <div class="col-sm-10">
-			      <input type="propid" name="propid"  class="form-control" id="input1" value="<?php echo $r['propid']; ?>" placeholder="PropID" />
+			      <input type="fee" name="fee"  class="form-control" id="fee" value="<?php echo $r['fee']; ?>" required placeholder="Fee%" />
+			    </div>
+			</div>
+
+			<div class="form-group">
+			    <label for="propid" class="col-sm-2 control-label">PropID</label>
+			    <div class="col-sm-10">
+			      <input type="propid" name="propid"  class="form-control" id="propid" value="<?php echo $r['propid']; ?>" required placeholder="PropID" />
 			    </div>
 			</div>
 

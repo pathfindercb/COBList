@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Slip update
- * package    PAI_COBList 20180430
+ * package    PAI_COBList 20180511
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and updates the slip table
  *	called by COBMastermenu.php after login
@@ -22,9 +22,11 @@
 
 $slipid = $_GET['slipid'];
 $SelSql = "SELECT * FROM `SlipMaster` WHERE slipid=:slipid";
-$res = $pdo->prepare($SelSql);
-$res->execute([$slipid]);
-$r = $res->fetch(PDO::FETCH_ASSOC);
+$stmt = $pdo->prepare($SelSql);
+$stmt->execute([$slipid]);
+$r = $stmt->fetch(PDO::FETCH_ASSOC);
+//if not found then exit
+if (!$r) {header('location: slipView.php');}
 if(isset($_POST) & !empty($_POST)){
 	$slipid = ($_POST['slipid']);
 	$type = ($_POST['type']);
@@ -34,9 +36,10 @@ if(isset($_POST) & !empty($_POST)){
 	$width = ($_POST['width']);
 	$depth = ($_POST['depth']);
 
-	$UpdateSql = "UPDATE `SlipMaster` SET slipid='$slipid', type='$type', dock='$dock', class='$class', scondition='$scondition', width='$width', depth='$depth' WHERE slipid='$slipid'";
-	$res = $pdo->prepare($UpdateSql);
-	if($res->execute()){
+	$sql = "UPDATE `SlipMaster` SET type=:type, dock=:dock, class=:class, scondition=:scondition, width=:width, depth=:depth WHERE slipid=:slipid";
+	$val = array("slipid" => $slipid, "type" => $type, "dock" => $dock, "class" => $class, "scondition" => $scondition, "width" => $width, "depth" => $depth );
+	$stmt = $pdo->prepare($sql);
+	if($stmt->execute($val)){
 		header('location: slipView.php');
 	}else{
 		$fmsg = "Failed to update data.";
@@ -66,9 +69,9 @@ if(isset($_POST) & !empty($_POST)){
 		<form method="post" class="form-horizontal col-sm-6 col-sm-offset-3">
 		<h2>Update SlipMaster</h2>
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Slip</label>
+			    <label for="slipid" class="col-sm-2 control-label">Slip</label>
 			    <div class="col-sm-6">
-			      <input type="text" name="slipid"  class="form-control" id="input1" readonly value="<?php echo $r['slipid']; ?>" placeholder="slipid" />
+			      <input type="text" name="slipid"  class="form-control" id="slipid" readonly value="<?php echo $r['slipid']; ?>" placeholder="slipid" />
 			    </div>
 			</div>
 
@@ -76,7 +79,6 @@ if(isset($_POST) & !empty($_POST)){
 			<label for="input1" class="col-sm-2 control-label">Type</label>
 			<div class="col-sm-6">
 				<select name="type" class="form-control">
-					<option>Select Type</option>
 					<option value="Slip" <?php if($r['type'] == 'Slip'){ echo " selected ";} ?> >Slip</option>
 					<option value="Kayak" <?php if($r['type'] == 'Kayak'){ echo " selected ";} ?> >Kayak</option>
 				</select>
@@ -87,7 +89,6 @@ if(isset($_POST) & !empty($_POST)){
 			<label for="input1" class="col-sm-2 control-label">Dock</label>
 			<div class="col-sm-6">
 				<select name="dock" class="form-control">
-					<option>Select Dock</option>
 					<option value="MS" <?php if($r['dock'] == 'MS'){ echo "selected";} ?> >MS</option>
 					<option value="North Dock" <?php if($r['dock'] == 'North Dock'){ echo " selected ";} ?> >North Dock</option>
 					<option value="South Dock" <?php if($r['dock'] == 'South Dock'){ echo " selected ";} ?> >South Dock</option>
@@ -111,23 +112,23 @@ if(isset($_POST) & !empty($_POST)){
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Condition</label>
+			    <label for="scondition" class="col-sm-2 control-label">Condition</label>
 			    <div class="col-sm-6">
-			      <input type="scondition" name="scondition"  class="form-control" id="input1" value="<?php echo $r['scondition']; ?>" placeholder="Condition" />
+			      <input type="scondition" name="scondition"  class="form-control" id="scondition" value="<?php echo $r['scondition']; ?>" placeholder="Condition" />
 			    </div>
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Width</label>
+			    <label for="width" class="col-sm-2 control-label">Width</label>
 			    <div class="col-sm-6">
-			      <input type="width" name="width"  class="form-control" id="input1" value="<?php echo $r['width']; ?>" placeholder="Width" />
+			      <input type="width" name="width"  class="form-control" id="width" value="<?php echo $r['width']; ?>" placeholder="Width" />
 			    </div>
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Depth</label>
+			    <label for="depth" class="col-sm-2 control-label">Depth</label>
 			    <div class="col-sm-6">
-			      <input type="depth" name="depth"  class="form-control" id="input1" value="<?php echo $r['depth']; ?>" placeholder="Depth" />
+			      <input type="depth" name="depth"  class="form-control" id="depth" value="<?php echo $r['depth']; ?>" placeholder="Depth" />
 			    </div>
 			</div>
 

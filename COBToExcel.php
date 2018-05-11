@@ -23,10 +23,10 @@ $hdr = array_fill_keys($keys, "string");
 
 //print("<pre>".print_r($tfields,true)."</pre>");		
 
-$SelSql = "SELECT * FROM `" . $mtable . "` ORDER BY " . $tfields[0];
-$res = $pdo->prepare($SelSql);
-$res->execute();
-$r = $res->fetchALL(PDO::FETCH_ASSOC);
+$sql = "SELECT * FROM `" . $mtable . "` ORDER BY " . $tfields[0];
+$stmt = $pdo->prepare($sql);
+$stmt->execute();
+$r = $stmt->fetchALL(PDO::FETCH_ASSOC);
 //print("<pre>".print_r($r,true)."</pre>");		
 
 	//Creates the XL file from all the array

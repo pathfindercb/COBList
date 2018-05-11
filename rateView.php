@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Rate View
- * package    PAI_COBList 20180430
+ * package    PAI_COBList 20180511
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and view the rate table
  *	called by COBMastermenu.php after login
@@ -31,9 +31,9 @@ $startpage = 1;
 $nextpage = $curpage + 1;
 $previouspage = $curpage - 1;
 
-$ReadSql = "SELECT * FROM `RateMaster` ORDER BY class LIMIT $start, $perpage";
-$res = $pdo->prepare($ReadSql);
-$res->execute();
+$sql = "SELECT * FROM `RateMaster` ORDER BY class LIMIT $start, $perpage";
+$stmt = $pdo->prepare($sql);
+$stmt->execute();
 ?>
 <!DOCTYPE html>
 <html>
@@ -72,7 +72,7 @@ $res->execute();
 		</thead> 
 		<tbody> 
 		<?php 
-		while($r = $res->fetch(PDO::FETCH_ASSOC)){
+		while($r = $stmt->fetch(PDO::FETCH_ASSOC)){
 		?>
 			<tr> 
 				<th scope="row"><?php echo $r['class']; ?></th> 

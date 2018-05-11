@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!-- COBDelta 04/19/18 -->
+<!-- COBDelta 05/11/18 -->
 <!--This is the main web index for all the COBList reports using a form to select-->
 
 <html>
@@ -82,13 +82,13 @@
 			<label for="input1" class="col-sm-2 control-label">Report type</label>
 			<div class="col-sm-4">
 				<select name="rptsel" class="form-control">
-				<option value="json">Create JSON file</option>
 				<option value="excel">Create Excel file</option>
+				<option value="json">Create JSON file</option>
 				</select>			
 			</div>
 			</div>
 			<div class="form-group">
-			<label for="input1" class="col-sm-2 control-label">'Was' date</label>
+			<label for="wasid" class="col-sm-2 control-label">'Was' date</label>
 			<div class="col-sm-4">
 				<select name="wasid" id="wasid" class="form-control">
 <?php
@@ -101,7 +101,7 @@
 			</div>
 			</div>
 			<div class="form-group">
-			<label for="input1" class="col-sm-2 control-label">'Is' date</label>
+			<label for="isid" class="col-sm-2 control-label">'Is' date</label>
 			<div class="col-sm-4">
 				<select name="isid" id="isid" class="form-control">
 <?php
@@ -125,13 +125,13 @@
 		<form name="frmUser" method="post" class="form-horizontal col-xs-12">
 		<h2>COB Login</h2>
 			<div class="form-group">
-			    <label for="input1" class="col-xs-4 control-label">UserName</label>
+			    <label for="username" class="col-xs-4 control-label">UserName</label>
 			    <div class="col-xs-8">
 			      <input type="text" name="username"  class="form-control" id="username"/>
 			    </div>
 			</div>
 			<div class="form-group">
-			    <label for="input1" class="col-xs-4 control-label">UserID</label>
+			    <label for="userid" class="col-xs-4 control-label">UserID</label>
 			    <div class="col-xs-8">
 			      <input type="text" name="userid"  class="form-control" id="userid"/>
 			    </div>

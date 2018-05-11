@@ -1,6 +1,6 @@
 <?php
 /** PAI COB Rate Update
- * package    PAI_COBList 20180502
+ * package    PAI_COBList 20180511
  * @license   Copyright © 2018 Pathfinder Associates, Inc.
  *	opens the coblist db and updates the rate table
  *	called by COBMastermenu.php after login
@@ -17,17 +17,20 @@
 
 $class = $_GET['class'];
 $SelSql = "SELECT * FROM `RateMaster` WHERE class=:class";
-$res = $pdo->prepare($SelSql);
-$res->execute([$class]);
-$r = $res->fetch(PDO::FETCH_ASSOC);
+$stmt = $pdo->prepare($SelSql);
+$stmt->execute([$class]);
+$r = $stmt->fetch(PDO::FETCH_ASSOC);
+//if not found then exit
+if (!$r) {header('location: rateView.php');}
 if(isset($_POST) & !empty($_POST)){
 	$class = ($_POST['class']);
 	$rate = ($_POST['rate']);
 	$date = ($_POST['date']);
 
-	$UpdateSql = "UPDATE `ratemaster` SET class='$class', rate='$rate', date='$date' WHERE class='$class'";
-	$res = $pdo->prepare($UpdateSql);
-	if($res->execute()){
+	$sql = "UPDATE `RateMaster` SET rate=:rate, date=:date WHERE class=:class";
+	$val = array("class" => $class, "rate" => $rate, "date" => $date );
+	$stmt = $pdo->prepare($sql);
+	if($stmt->execute($val)){
 		header('location: rateView.php');
 	}else{
 		$fmsg = "Failed to update data.";
@@ -57,23 +60,23 @@ if(isset($_POST) & !empty($_POST)){
 		<form method="post" class="form-horizontal col-sm-6 col-sm-offset-3">
 		<h2>Update RateMaster</h2>
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Class</label>
+			    <label for="class" class="col-sm-2 control-label">Class</label>
 			    <div class="col-sm-6">
-			      <input type="text" name="class"  class="form-control" id="input1" readonly value="<?php echo $r['class']; ?>" placeholder="Rate" />
+			      <input type="text" name="class"  class="form-control" id="class" readonly value="<?php echo $r['class']; ?>" placeholder="Rate" />
 			    </div>
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Rate</label>
+			    <label for="rate" class="col-sm-2 control-label">Rate</label>
 			    <div class="col-sm-6">
-			      <input type="text" name="rate"  class="form-control" id="input1" value="<?php echo $r['rate']; ?>" placeholder="Rate" />
+			      <input required type="text" name="rate"  class="form-control" id="rate" value="<?php echo $r['rate']; ?>" placeholder="Rate" />
 			    </div>
 			</div>
 
 			<div class="form-group">
-			    <label for="input1" class="col-sm-2 control-label">Date</label>
+			    <label for="date" class="col-sm-2 control-label">Date</label>
 			    <div class="col-sm-6">
-			      <input type="date" name="date"  class="form-control" id="input1" value="<?php echo $r['date']; ?>" placeholder="Date" />
+			      <input required type="date" name="date"  class="form-control" id="date" value="<?php echo $r['date']; ?>" placeholder="Date" />
 			    </div>
 			</div>
 
