@@ -1,5 +1,6 @@
 <?php
-/*	Updated for column width by Pathfinder Associates, Inc. 4/18/2018
+/*	Updated for column width by Pathfinder Associates, Inc. 4/11/2019
+ *	Updated for curly bracket line 339
  *	Updated for landscape and fit and Title property 3/31/18
  * @license MIT License  
  * */
@@ -11,7 +12,7 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	//http://office.microsoft.com/en-us/excel-help/excel-specifications-and-limits-HP010073849.aspx
 	// added version property so apps can check version
-	const version = "0.60";
+	const version = "0.70";
 	const EXCEL_2007_MAX_ROW=1048576;
 	const EXCEL_2007_MAX_COL=16384;
 	//------------------------------------------------------------------
@@ -75,6 +76,7 @@ class XLSXWriter
 	{
 		$temp_file = $this->tempFilename();
 		self::writeToFile($temp_file);
+		header('Content-Length: ' . filesize($temp_file));
 		readfile($temp_file);
 	}
 
@@ -335,7 +337,7 @@ class XLSXWriter
 
 		if (!is_scalar($value) || $value==='') { //objects, array, empty
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'"/>');
-		} elseif (is_string($value) && $value{0}=='='){
+		} elseif (is_string($value) && $value[0]=='='){
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="s"><f>'.self::xmlspecialchars($value).'</f></c>');
 		} elseif ($num_format_type=='n_date') {
 			$file->write('<c r="'.$cell_name.'" s="'.$cell_style_idx.'" t="n"><v>'.intval(self::convert_date_time($value)).'</v></c>');

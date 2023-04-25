@@ -1,9 +1,13 @@
 <?php
-//	Process COBList 20180418
+//	Process COBList 20220312
 //	package    PAI_COBList
-//	@license        Copyright © 2018 Pathfinder Associates, Inc.
-// v4.0
- 	// check if logged in 
+//	@license        Copyright © 2018-2022 Pathfinder Associates, Inc.
+// v4.1.1
+// check if logged in 
+
+// Report all PHP errors
+error_reporting(E_ALL);
+
 include ('PAI_coblist.class.php');
 register_shutdown_function('shutDownFunction');
 // check if logged in 
@@ -19,12 +23,30 @@ $delta = $mCOB->RunDelta($msg);
 
 // set report output type
 if ($_POST["rptsel"] == "json") {
+	if (headers_sent()) {
+		error_log ("JSON export failed",0);
+		die("Export failed. ");
+	}
+	error_log ("JSON export",0);
+	// clean the output buffer
+//	ob_start();
+//	ob_clean();
 	$mCOB->typeDelta = "11";
-	header('Content-disposition: attachment; filename=COBDelta' . date('Ymd') .'.json');
-	header('Content-type: application/json');
+	header('Content-disposition: attachment; filename="COBDelta' . date('Ymd') .'.json'.'"');
+	header("Content-Type: application/octet-stream;");
+	header('Pragma: public');
+	header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+
+//	header('Content-disposition: attachment; filename=COBDelta' . date('Ymd') .'.json');
+//	header('Content-type: application/json');
+
 	echo(json_encode($delta));
+//	$s1 = ob_get_contents(); // read ob
+//	ob_end_flush();
+//	error_log ($s1,0);
 
 } else {
+	error_log ("XLS export",0);
 
 	$mCOB->typeDelta = "12";
 	//Creates the XL file from all the arrays
@@ -94,14 +116,9 @@ if ($_POST["rptsel"] == "json") {
 	
 		$writer->writeToStdOut(); 
 	unset($writer);
-		
-
 }
-
-
 unset($mCOB);
 exit;
-
 
 function shutDownFunction() { 
     $error = error_get_last();
@@ -112,5 +129,4 @@ function shutDownFunction() {
 		echo "Program failed! Please try again using left menu Run COBList. If it keeps failing notify Chris Barlow.";
     } 
 }
-
 ?>

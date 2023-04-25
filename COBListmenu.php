@@ -1,20 +1,19 @@
 <!DOCTYPE html>
 
-<!-- COBDelta 05/02/18 -->
+<!-- COBListMenu 11/02/21 -->
 <!-- This is the main load for the COBList files using a form to select run type-->
 <!-- Requires COBListrun.php, COBListlogout.ph, PAI_coblist.class.php, PAI_crypt.class.php, PAI_xlsxwriter.class.php, COBconnect.php, COBkey.php  -->
 
 <html>
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
-<title>Run COBList v4.0</title>
+<title>COBList v4.1</title>
 	<!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" >
  
 <!-- Optional theme -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" >
  
-<link rel="stylesheet" href="styles.css" >
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 
@@ -87,7 +86,7 @@
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">
-        Copyright © 2018 
+        Copyright © 2021 
         <a href="http://pathfinderassociatesinc.com/"> Pathfinder Associates, Inc.</a>
     </div>
 <!--/.Copyright-->

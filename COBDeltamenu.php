@@ -148,7 +148,7 @@
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">
-        Copyright © 2018 
+        Copyright © 2018-2022 
         <a href="http://pathfinderassociatesinc.com/"> Pathfinder Associates, Inc.</a>
     </div>
 <!--/.Copyright-->

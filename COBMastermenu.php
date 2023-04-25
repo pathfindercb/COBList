@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 
-<!-- COBMaster 05/02/18 -->
+<!-- COBMasterMenu 04/11/19 -->
 <!--	This is the main web index for all the COBList master file maintenance using a form to select-->
 
 <html>
 <head>
-<title>COBMaster User Login v4.0</title>
+<title>COBMaster User Login v4.1</title>
 	<!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" >
  
 <!-- Optional theme -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" >
  
-<link rel="stylesheet" href="styles.css" >
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 
@@ -124,7 +123,7 @@
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">
-        Copyright © 2018 
+        Copyright © 2019 
         <a href="http://pathfinderassociatesinc.com/"> Pathfinder Associates, Inc.</a>
     </div>
 <!--/.Copyright-->
@@ -136,12 +135,14 @@ unset($mCOB);
 
 function shutDownFunction() { 
     $error = error_get_last();
-    // fatal error, E_ERROR === 1
-    if ($error['type'] === E_ERROR) { 
-        //do your stuff
-		//error_log ($_SERVER['REMOTE_ADDR'] . '=' . $msg,0);
-		echo "Program failed! Please try again using left menu Run COBDelta. If it keeps failing notify Chris Barlow.";
-    } 
+	if ($error) {
+		// fatal error, E_ERROR === 1
+		if ($error['type'] === E_ERROR) { 
+			//do your stuff
+			//error_log ($_SERVER['REMOTE_ADDR'] . '=' . $msg,0);
+			echo "Program failed! Please try again using left menu Run COBDelta. If it keeps failing notify Chris Barlow.";
+		}
+	} 
 }
 ?>
 </body>
