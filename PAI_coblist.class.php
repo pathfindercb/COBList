@@ -1,7 +1,7 @@
 <?php
 /** PAI_coblist class file
- * package    PAI_COBList 20221108
- * @license   Copyright © 2018-2022 Pathfinder Associates, Inc.
+ * package    PAI_COBList 20230503
+ * @license   Copyright © 2018-2023 Pathfinder Associates, Inc.
  * Public Methods: 
  *		CheckFile-checks uploaded CSV for format and size
  *		ProcessFile-main process to create working arrays/tables and create XLSX
@@ -21,7 +21,7 @@ class COBList
      * main class
      */   
 	// Private Variables //
-		const iVersion = "4.1.6";
+		const iVersion = "4.1.9";
 		private $dbUser = array();
 		private $hdrUser = array();
 		private $dbRes = array();
@@ -546,6 +546,11 @@ class COBList
 					if ($rowData[self::iOwner] == "Yes") {
 						$this->addError('1','Owner Error',$rowData[self::iUnit],$rowData[self::iUser1LastName],'Owner with only member access');
 					}
+					// check if expired lease temp[1]
+					if ($temp[1] < date('Y-m-d')) {
+						$this->addError('2','Lease Expired',$rowData[self::iUnit],$rowData[self::iUser1LastName],'This unit lease expired');
+					}
+					
 				}
 			}	
 			// copy certain fields to dbPets
@@ -748,7 +753,7 @@ class COBList
 				
 		//now add waitlist info at bottom of dbSlip array
 		$this->dbSlip[]=array("");
-		$this->dbSlip[]=array("Wait List");
+		$this->dbSlip[]=array("Slip Wait List " . date('Ymd'));
 		$this->dbSlip[]=array_keys($this->hdrWait);
 		$query1 = $this->pdo->prepare("SELECT date, names, owner, unit, number FROM WaitList where type = 'S' ORDER BY date");
 		$query1->execute();
@@ -764,7 +769,7 @@ class COBList
 		$query1->execute();
 		$this->dbKayak = $query1->fetchALL(PDO::FETCH_ASSOC);
 		$this->dbKayak[]=array("");
-		$this->dbKayak[]=array("Wait List");
+		$this->dbKayak[]=array("Kayak Wait List " . date('Ymd'));
 		$this->dbKayak[]=array_keys($this->hdrWait);
 		$query1 = $this->pdo->prepare("SELECT date, names, owner, unit, number FROM WaitList where type = 'K' ORDER BY date");
 		$query1->execute();
@@ -1158,6 +1163,7 @@ class COBList
 	
 	function GetAddress($row) {
 	// returns an array of addr, citystate for mailings based on user settings
+	// updated 202305 for Email Me option
 	if ($row[self::iMailings] == "2nd Address") {
 		if ($temp = explode (',',$row[self::i2ndAddress])) {
 			if (count($temp)!==2) {
@@ -1166,6 +1172,9 @@ class COBList
 				$this->addError('10','2ndAddress format',$row[self::iUnit],$row[self::iUser1LastName],$row[self::i2ndAddress]);
 			}
 		}
+	} elseif ($row[self::iMailings] == "Email Me"){
+		$temp[0] = $row[self::iEmail];
+		$temp[1] = "";
 	} else {
 		switch (substr($row[self::iUnit],0, 7)) {
 			Case "Tower 1":
@@ -1181,7 +1190,9 @@ class COBList
 				$temp[1] = "Sarasota FL 34236";
 				break;
 			default:
-				$this->addError('1','Unit format',$row[self::iUnit],$row[self::iUser1LastName],'Unit has wrong association');
+				if(!str_contains($row[self::iAccess], "A")){
+					$this->addError('1','Unit format',$row[self::iUnit],$row[self::iUser1LastName],'Unit has wrong association');
+				}
 				$temp[0] = "";
 				$temp[1]  = "";
 			}	
