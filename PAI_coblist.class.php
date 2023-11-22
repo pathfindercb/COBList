@@ -1,6 +1,6 @@
 <?php
 /** PAI_coblist class file
- * package    PAI_COBList 20230503
+ * package    PAI_COBList 20231121
  * @license   Copyright © 2018-2023 Pathfinder Associates, Inc.
  * Public Methods: 
  *		CheckFile-checks uploaded CSV for format and size
@@ -21,7 +21,7 @@ class COBList
      * main class
      */   
 	// Private Variables //
-		const iVersion = "4.1.9";
+		const iVersion = "4.1.10";
 		private $dbUser = array();
 		private $hdrUser = array();
 		private $dbRes = array();
@@ -501,7 +501,7 @@ class COBList
 			$rowData[] = "";
 			$rowData[] = "";
 		} elseif
-			(((stripos($rowData[self::iAccess],'^A') !== false) &&
+			(((stripos($rowData[self::iAccess],'A') !== false) &&
 			(stripos($rowData[self::iAccess],'^ADMINWM') == false))||
 			($rowData[self::iAccess]=='ADMINEM'))
 			{
