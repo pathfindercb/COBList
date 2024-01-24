@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!-- COBMasterMenu 04/11/19 -->
+<!-- COBMasterMenu 01/19/24 -->
 <!--	This is the main web index for all the COBList master file maintenance using a form to select-->
 
 <html>
@@ -120,11 +120,12 @@
 	} 
 ?>
 <!--Footer-->
+!--Footer-->
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">
-        Copyright © 2019 
-        <a href="http://pathfinderassociatesinc.com/"> Pathfinder Associates, Inc.</a>
+        <a href="License.htm"  target="_blank">Licensed for free use</a> © 2018-2024  
+        <a href="http://pathfinderassociatesinc.com/">Pathfinder Associates, Inc.</a>
     </div>
 <!--/.Copyright-->
 </footer>
@@ -135,14 +136,12 @@ unset($mCOB);
 
 function shutDownFunction() { 
     $error = error_get_last();
-	if ($error) {
-		// fatal error, E_ERROR === 1
-		if ($error['type'] === E_ERROR) { 
-			//do your stuff
-			//error_log ($_SERVER['REMOTE_ADDR'] . '=' . $msg,0);
-			echo "Program failed! Please try again using left menu Run COBDelta. If it keeps failing notify Chris Barlow.";
-		}
-	} 
+    // fatal error, E_ERROR === 1
+    if ($error['type'] === E_ERROR) { 
+        //do your stuff
+		//error_log ($_SERVER['REMOTE_ADDR'] . '=' . $msg,0);
+		echo "Program failed! Please try again using left menu Run COBDelta. If it keeps failing notify Chris Barlow.";
+    } 
 }
 ?>
 </body>

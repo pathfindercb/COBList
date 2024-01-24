@@ -1,7 +1,7 @@
 <?php
 /** PAI_coblist class file
- * package    PAI_COBList 20231121
- * @license   Copyright © 2018-2023 Pathfinder Associates, Inc.
+ * package    PAI_COBList 20240123
+ * @license   Copyright © 2018-2024 Pathfinder Associates, Inc.
  * Public Methods: 
  *		CheckFile-checks uploaded CSV for format and size
  *		ProcessFile-main process to create working arrays/tables and create XLSX
@@ -14,6 +14,7 @@
  *		Added Owner to slip waitlist and error for vacant rack
  *		Added SELECT DISTINCT to build dbRenter since it was duplicating all units
  *		Don't add to DBRenter if a Partner
+ *		Added phone and email to wait list
  */
 class COBList
 {
@@ -21,7 +22,7 @@ class COBList
      * main class
      */   
 	// Private Variables //
-		const iVersion = "4.1.10";
+		const iVersion = "4.1.12";
 		private $dbUser = array();
 		private $hdrUser = array();
 		private $dbRes = array();
@@ -35,6 +36,7 @@ class COBList
 		private $dbSlip = array();
 		private $hdrSlip = array();
 		private $hdrWait = array();
+		private $hdrWait2 = array();
 		private $dbKayak = array();
 		private $hdrKayak = array();
 		private $dbRenter = array();
@@ -461,7 +463,7 @@ class COBList
 	while ($row = $query1->fetch(PDO::FETCH_ASSOC)) {
 		$this->addError('1','No unit owner!',$row['unit'],$row['owners'],'');
 		}
-	$query1 = $this->pdo->prepare("select unit, count(unit) as owners FROM `UserUnit` where owner = 'yes' group by unit having count(unit) > 1");
+	$query1 = $this->pdo->prepare("select unit, count(unit) as owners FROM `UserUnit` where owner = 'yes' group by unit having count(unit) > 2");
 	$query1->execute();
 	while ($row = $query1->fetch(PDO::FETCH_ASSOC)) {
 		$this->addError('16','Owner Count',$row['unit'],$row['owners'],'');
@@ -615,7 +617,8 @@ class COBList
 		// build header
 		$temp = ($this->showInfo) ? 'Internal':'External';
 		$this->hdrSlip = array('Dock'=>'string', 'Slip'=>'string','Class'=>'string','Rate'=>'string','Type'=>'string','Condition'=>'string', 'Name'=>'string','Unit'=>'string','Lift'=>'string','Phone'=>'string','Email'=>'string');
-		$this->hdrWait = array('Date'=>'string','Name'=>'string','Owner'=>'string','Unit'=>'string','Number'=>'string');
+		$this->hdrWait = array('Date'=>'string','Owner'=>'string','Name'=>'string','Unit'=>'string','Category'=>'string','Phone'=>'string','Email'=>'string');
+		$this->hdrWait2 = array('Date'=>'string','Owner'=>'string','Name'=>'string','Unit'=>'string','Number'=>'string','Phone'=>'string','Email'=>'string');
 		
 		// step thru each line of the file
 		foreach ($this->dbUser as $row) {
@@ -664,8 +667,23 @@ class COBList
 						if (strlen(trim($slip))== 12) {
 							$wnum = substr(trim($slip),11,1);
 						} 
-						$sql = "INSERT INTO WaitList (type,unit, names, owner, date, number,userid)
-								VALUES (:type,:unit,:names,:owner,:date,:number,:userid)";
+						// decide if include email and phone based on user Profile settings if showInfo property is set = false
+						$phone = "";
+						$email = "";
+						if ($this->showInfo) {
+							$phone = $this->GetBestPhone($row);
+							$email = $this->GetEmail($row[self::iEmail]);
+						} elseif ($row[self::iShowProfile]=='Yes') {
+								if($row[self::iShowPhone]=='Yes') {
+									$phone = $this->GetBestPhone($row);
+								}
+								if($row[self::iShowEmail]=='Yes') {
+									$email = $this->GetEmail($row[self::iEmail]);
+								}
+							}
+
+						$sql = "INSERT INTO WaitList (type,unit, names, owner, date,  number, phone, email,userid)
+								VALUES (:type,:unit,:names,:owner,:date,:number,:phone,:email,:userid)";
 						$valarray = array(
 								"type" => substr(trim($slip),1,1), 
 								"unit" => $row[7], 
@@ -673,6 +691,8 @@ class COBList
 								"owner" => $row[30],
 								"date" => $wdate,
 								"number" => $wnum,
+								"phone" => $phone,
+								"email" => $email,
 								"userid" => $row[45]
 								);
 								
@@ -755,7 +775,7 @@ class COBList
 		$this->dbSlip[]=array("");
 		$this->dbSlip[]=array("Slip Wait List " . date('Ymd'));
 		$this->dbSlip[]=array_keys($this->hdrWait);
-		$query1 = $this->pdo->prepare("SELECT date, names, owner, unit, number FROM WaitList where type = 'S' ORDER BY date");
+		$query1 = $this->pdo->prepare("SELECT date, owner, names, unit, number, phone, email FROM WaitList where type = 'S' ORDER BY date");
 		$query1->execute();
 		$this->dbSlip = array_merge($this->dbSlip,$query1->fetchALL(PDO::FETCH_ASSOC));
 		
@@ -770,8 +790,8 @@ class COBList
 		$this->dbKayak = $query1->fetchALL(PDO::FETCH_ASSOC);
 		$this->dbKayak[]=array("");
 		$this->dbKayak[]=array("Kayak Wait List " . date('Ymd'));
-		$this->dbKayak[]=array_keys($this->hdrWait);
-		$query1 = $this->pdo->prepare("SELECT date, names, owner, unit, number FROM WaitList where type = 'K' ORDER BY date");
+		$this->dbKayak[]=array_keys($this->hdrWait2);
+		$query1 = $this->pdo->prepare("SELECT date, owner, names, unit, number, phone, email FROM WaitList where type = 'K' ORDER BY date");
 		$query1->execute();
 		$this->dbKayak = array_merge($this->dbKayak,$query1->fetchALL(PDO::FETCH_ASSOC));
 

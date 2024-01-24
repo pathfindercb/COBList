@@ -144,12 +144,12 @@
 	} 
 ?>
 
-<!--Footer-->
+!--Footer-->
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">
-        Copyright © 2018-2022 
-        <a href="http://pathfinderassociatesinc.com/"> Pathfinder Associates, Inc.</a>
+        <a href="License.htm"  target="_blank">Licensed for free use</a> © 2018-2024  
+        <a href="http://pathfinderassociatesinc.com/">Pathfinder Associates, Inc.</a>
     </div>
 <!--/.Copyright-->
 </footer>
