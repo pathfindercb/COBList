@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 
-<!-- COBListMenu 11/02/21 -->
+<!-- COBListMenu 02/02/24 -->
 <!-- This is the main load for the COBList files using a form to select run type-->
 <!-- Requires COBListrun.php, COBListlogout.ph, PAI_coblist.class.php, PAI_crypt.class.php, PAI_xlsxwriter.class.php, COBconnect.php, COBkey.php  -->
 
 <html>
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=us-ascii">
-<title>COBList v4.1</title>
+<title>COBList v4.2</title>
 	<!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" >
  
@@ -82,7 +82,7 @@
 			<input type="submit" name="submit" class="btn btn-primary col-xs-4 " value="Run Report" />
 		</form>
 
-!--Footer-->
+<!--Footer-->
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">
@@ -92,8 +92,6 @@
 <!--/.Copyright-->
 </footer>
 <!--/.Footer-->
-
-
 </body>
 </html>
 

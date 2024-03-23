@@ -1,7 +1,7 @@
 <?php
-//	Process COBList 20220302
+//	Process COBList 20240229
 //	package    PAI_COBList
-//	@license   Copyright © 2018-2022 Pathfinder Associates, Inc.
+//	@license   Copyright © 2018-2024 Pathfinder Associates, Inc.
 // v4.0
  	// check if logged in 
 
@@ -28,7 +28,8 @@ if ($mCOB->Checkfile($msg)) {
 	$mCOB->logging = false;
 	//convert javascript time to unix time
 	$mCOB->runTime = time();
-	$mCOB->fileTime = intval($_POST['fileTime']/1000);
+	$mCOB->fileTime = time();
+//	$mCOB->fileTime = intval($_POST['fileTime']/1000);
 	// IE doesn't pass fileTime so just assume runTime for CSV modified time
 	if ($mCOB->fileTime == 0) {$mCOB->fileTime = $mCOB->runTime;}
 	$ip = $_SERVER['REMOTE_ADDR'] ;

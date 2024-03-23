@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!-- COBMasterMenu 01/19/24 -->
+<!-- COBMasterMenu 01/30/24 -->
 <!--	This is the main web index for all the COBList master file maintenance using a form to select-->
 
 <html>
@@ -120,7 +120,6 @@
 	} 
 ?>
 <!--Footer-->
-!--Footer-->
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">

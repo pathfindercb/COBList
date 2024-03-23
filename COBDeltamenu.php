@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<!-- COBDelta 05/11/18 -->
+<!-- COBDelta 01/30/24 -->
 <!--This is the main web index for all the COBList reports using a form to select-->
 
 <html>
@@ -144,7 +144,7 @@
 	} 
 ?>
 
-!--Footer-->
+<!--Footer-->
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">

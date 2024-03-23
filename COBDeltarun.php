@@ -1,8 +1,8 @@
 <?php
-//	Process COBList 20220312
+//	Process COBList 2020205
 //	package    PAI_COBList
-//	@license        Copyright © 2018-2022 Pathfinder Associates, Inc.
-// v4.1.1
+//	@license        Copyright © 2018-2024 Pathfinder Associates, Inc.
+// v4.1.0
 // check if logged in 
 
 // Report all PHP errors
@@ -83,6 +83,15 @@ if ($_POST["rptsel"] == "json") {
 	$writer->writeSheetRow('Info',array_keys($delta['Response']['Delta']['WasInfo']),$hstyle);
 	$writer->writeSheetRow('Info',$delta['Response']['Delta']['WasInfo'],$bstyle);
 	
+	// write Summary
+	// write header first
+	if (!empty($delta['Delta']['Summary'])){
+		$writer->writeSheetRow('Summary',array_keys($delta['Delta']['Summary'][0]),$hstyle);
+	}
+	foreach ($delta['Delta']['Summary'] as $chg) {
+		$writer->writeSheetRow('Summary',$chg,$bstyle);
+	}
+	
 	//write Added
 	// write header first
 	if (!empty($delta['Delta']['Added'][0]['Fields']['Is'])){
@@ -114,7 +123,7 @@ if ($_POST["rptsel"] == "json") {
 		$writer->writeSheetRow('Deleted',$chg['Fields']['Was'],$bstyle);
 	}
 	
-		$writer->writeToStdOut(); 
+	$writer->writeToStdOut(); 
 	unset($writer);
 }
 unset($mCOB);

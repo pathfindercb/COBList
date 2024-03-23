@@ -1,6 +1,6 @@
 <?php
-/** PAI_coblist class file
- * package    PAI_COBList 20240123
+/** PAI_coblist class file 
+ * package    PAI_COBList 20240323
  * @license   Copyright © 2018-2024 Pathfinder Associates, Inc.
  * Public Methods: 
  *		CheckFile-checks uploaded CSV for format and size
@@ -15,6 +15,11 @@
  *		Added SELECT DISTINCT to build dbRenter since it was duplicating all units
  *		Don't add to DBRenter if a Partner
  *		Added phone and email to wait list
+ *		Changed Lift ot Limbo in slips to track 180 days period to terminate
+ *		Changed Kayak header to Trained
+ *		Added Tenure to slip/rack field
+ *		Added Access & Lease End to Listing sheet
+ *		Added LeaseEnd to Units and blank row above field header
  */
 class COBList
 {
@@ -22,7 +27,7 @@ class COBList
      * main class
      */   
 	// Private Variables //
-		const iVersion = "4.1.12";
+		const iVersion = "4.2.7";
 		private $dbUser = array();
 		private $hdrUser = array();
 		private $dbRes = array();
@@ -35,6 +40,7 @@ class COBList
 		private $hdrErr = array();
 		private $dbSlip = array();
 		private $hdrSlip = array();
+		private $hdrSlip2 = array();
 		private $hdrWait = array();
 		private $hdrWait2 = array();
 		private $dbKayak = array();
@@ -241,6 +247,7 @@ class COBList
 		//		GetBestPhone
 		//		GetEmail
 		// CreateXLFile
+		// WriteSKResponse
 
 		//setup start time logging
 		$this->sTime = microtime(true);
@@ -285,7 +292,11 @@ class COBList
 			$this->BuildGrids();
 			if ($this->logging){$this->addError("T55", "Start Slip", $this->timeRun($this->sTime),"","");}
 			$this->BuildSlip();
+			// now create the Slips & Kayak file for future static viewing
+			if ($this->logging){$this->addError("T56", "Start SKResponse", $this->timeRun($this->sTime),"","");}
+			$this->WriteSKResponse($checkmsg);
 		}
+		
 
 		//now log this run
 		// normal run
@@ -295,12 +306,13 @@ class COBList
 		// partial run
 		if (!$this->fullRun) {$type = 3;}
 		
-		if ($this->logging){$this->addError("T60", "Start Log", $this->timeRun($this->sTime),"","");}
+		if ($this->logging){$this->addError("T80", "Start Log", $this->timeRun($this->sTime),"","");}
 		$logid = $this->LogRun($checkmsg, $type);
 		
 		// now create Excel file
 		if ($this->logging){$this->addError("T90", "Start CreateFile", $this->timeRun($this->sTime),"","");}
 		$this->CreateXLFile();
+		
 		// comment line below to test db's
 //		$this->DeleteRecords();
 		
@@ -360,8 +372,8 @@ class COBList
 
 	public function GetRuns(&$checkmsg)
 	{
-		// queries the RunLog table and returns array of logid & filetime For Delta
-		$sql = "SELECT logid, filetime, ip FROM RunLog WHERE type = 1 OR type = 5 ORDER BY filetime desc";
+		// queries the RunLog table and returns array of logid & filetime 
+		$sql = "SELECT logid, filetime, ip FROM RunLog WHERE type = 1 OR type = 5 ORDER BY runtime desc";
 		$stmt = $this->pdo->prepare($sql);
 		$stmt->execute();
 		$result = $stmt->fetchALL(PDO::FETCH_ASSOC);
@@ -409,11 +421,39 @@ class COBList
 	//test for errors
 	//Unit format wrong, Stack mismatch, Access mismatch, Phone format, 2nd Address format, Emergency contact phone, Owner access, Mailing blank
 	//Offical Voter missing or duplicate
+	// Added check in Gone/Sold
 
 	//step thru User array
 	foreach ($this->dbUser as $rowData) {
-		if ((stripos($rowData[self::iUnit],'gone') !== false)) {
-		} elseif (stripos($rowData[self::iUnit],'sold') !== false) {
+
+		if (stripos($rowData[self::iUnit],'gone') !== false) {
+
+//		if (!(stripos($rowData[self::iUnit],'gone') === false)) {
+			// check if Enabled
+			if(!($rowData[self::iEnabled] == "No")){ 
+				$this->addError('5','Moved & enabled',$rowData[self::iUnit],$rowData[self::iUser1LastName],'Moved but enabled');
+			}
+			// check if Access Public
+			if(!(strcasecmp($rowData[self::iAccess],"PUBLIC")==0)){ 
+				$this->addError('5','Not PUBLIC',$rowData[self::iUnit],$rowData[self::iUser1LastName],'Moved not Access PUBLIC');
+			}
+			// check if holdall email
+			if((stripos($rowData[self::iEmail],"holdall@gmx")) === false){ 
+				$this->addError('5','Wrong email',$rowData[self::iUnit],$rowData[self::iUser1LastName],'Moved email not holdall');
+			}
+		} elseif ((stripos($rowData[self::iUnit],'sold') !== false)) {
+			// check if Enabled
+			if(!($rowData[self::iEnabled] == "No")){ 
+					$this->addError('5','Moved & enabled',$rowData[self::iUnit],$rowData[self::iUser1LastName],'Moved but enabled');
+			}
+			// check if Access Public
+			if(!(strcasecmp($rowData[self::iAccess],"PUBLIC")==0)){ 
+					$this->addError('5','Not PUBLIC',$rowData[self::iUnit],$rowData[self::iUser1LastName],'Moved not Access PUBLIC');
+			}
+			// check if holdall email
+			if((stripos($rowData[self::iEmail],"holdall@gmx")) === false){ 
+					$this->addError('5','Wrong email',$rowData[self::iUnit],$rowData[self::iUser1LastName],'Moved email not holdall');
+			}
 		} else {
 			// check if not Enabled
 			if(($rowData[self::iEnabled] == "No") && (stripos($rowData[self::iEmail],"holdall@gmx")) === false){ 
@@ -526,19 +566,13 @@ class COBList
 			
 			// then get floor for all units in this row
 			$rowData[] = $this->GetFloor($rowData[self::iUnit]);
-			
-			// copy current resident to dbRes
-			//write row - 6,3,7,30, 8,10,4,33,34
-			$this->dbRes[]=array(
-				$rowData[6],$rowData[3],$rowData[7],$rowData[30],$rowData[8],
-				$rowData[10],$this->GetEmail($rowData[4]),$rowData[33],$rowData[34]
-			);
-		
+			$temp[0]="";
+			$temp[1]="";			
 			// copy certain fields if current renter to dbRenter
 			if ($rowData[self::iAccess] == "MEMBER") {
 				// If not a Partner add to dbRenter
+				$temp = $this->GetLeaseDates($rowData);
 				if ($rowData[self::iOfficialVoter] !== "Partner") {
-					$temp = $this->GetLeaseDates($rowData);
 					//write row - GetLeaseDates(38),6,3,8,10,4,33,34
 					$this->dbRenter[]=array(
 						$temp[1], $temp[0],
@@ -555,6 +589,30 @@ class COBList
 					
 				}
 			}	
+			// If temp[1] empty then check IsAllRented
+			if ($temp[1]=="") {
+				if ($this->IsAllRented($rowData[self::iUnit])) {
+					$temp[1]= "AllRented";
+				}
+			}
+			// copy current resident user1 to dbRes if not already there
+			if (!$this->IsIndbRes($rowData[6],$rowData[3],$rowData[7],$rowData[4],$rowData[8],$rowData[10])){
+				//write row - 6,3,7,30, 8,10,4,33,5,LeaseEnd from above,34
+				$this->dbRes[]=array(
+					$rowData[6],$rowData[3],$rowData[7],$rowData[30],$rowData[8],
+					$rowData[10],$rowData[4],$rowData[33],$rowData[5],$temp[1],$rowData[34]
+				);
+			}	
+			// see if there is a User2
+			if (strlen(trim($rowData[15])) > 0) {
+				// now see if user 2 is already in dbRes before adding
+				if (!$this->IsIndbRes($rowData[15],$rowData[14],$rowData[7],$rowData[16],$rowData[17],$rowData[18])){
+					$this->dbRes[]=array(
+						$rowData[15],$rowData[14],$rowData[7],$rowData[30],$rowData[17],
+						$rowData[18],$rowData[16],$rowData[33],$rowData[5],$temp[1],$rowData[34]
+					);
+				}
+			}
 			// copy certain fields to dbPets
 			if (strlen(trim($rowData[self::iPets])) > 0) {
 				//write row - 7,6,3,37,8 or 10,4,33,34
@@ -592,7 +650,7 @@ class COBList
 	function BuildListingHdr()
 	{
 		//setup Listing columns for dbRes & dbRenter that was build in BuildAddress
-		$this->hdrRes = array('Last Name'=>'string', 'First Name'=>'string','Unit'=>'string','Owner'=>'string','Home Phone'=>'string','Cell Phone'=>'string','Email'=>'string','Emergency Contact'=>'string','Unit Watcher'=>'string');
+		$this->hdrRes = array('Last Name'=>'string', 'First Name'=>'string','Unit'=>'string','Owner'=>'string','Home Phone'=>'string','Cell Phone'=>'string','Email'=>'string','Emergency Contact'=>'string','Access'=>'string','Lease End'=>'string','Unit Watcher'=>'string');
 		$this->hdrRenter = array('Lease End'=>'string', 'Lease Start'=>'string', 'Unit'=>'string','Last Name'=>'string', 'First Name'=>'string','Home Phone'=>'string','Cell Phone'=>'string','Email'=>'string','Emergency Contact'=>'string','Unit Watcher'=>'string');
 		$this->hdrPets = array('Unit'=>'string','Last Name'=>'string', 'First Name'=>'string','Pets & WSD/ESA'=>'string','Phone'=>'string','Email'=>'string','Emergency Contact'=>'string','Unit Watcher'=>'string');
 		return;
@@ -616,7 +674,8 @@ class COBList
 		// scan dbUser to build Slips and Kayak db and arrays
 		// build header
 		$temp = ($this->showInfo) ? 'Internal':'External';
-		$this->hdrSlip = array('Dock'=>'string', 'Slip'=>'string','Class'=>'string','Rate'=>'string','Type'=>'string','Condition'=>'string', 'Name'=>'string','Unit'=>'string','Lift'=>'string','Phone'=>'string','Email'=>'string');
+		$this->hdrSlip = array('Dock'=>'string', 'Slip'=>'string','Class'=>'string','Rate'=>'string','Type'=>'string','Condition'=>'string', 'Name'=>'string','Unit'=>'string','Tenure'=>'string','Limbo'=>'string','Phone'=>'string','Email'=>'string', 'Emergency' => 'string');
+		$this->hdrSlip2 = array('Dock'=>'string', 'Rack'=>'string','Class'=>'string','Rate'=>'string','Type'=>'string','Condition'=>'string', 'Name'=>'string','Unit'=>'string','Tenure'=>'string','Trained'=>'string','Phone'=>'string','Email'=>'string', 'Emergency'=>'string');
 		$this->hdrWait = array('Date'=>'string','Owner'=>'string','Name'=>'string','Unit'=>'string','Category'=>'string','Phone'=>'string','Email'=>'string');
 		$this->hdrWait2 = array('Date'=>'string','Owner'=>'string','Name'=>'string','Unit'=>'string','Number'=>'string','Phone'=>'string','Email'=>'string');
 		
@@ -700,12 +759,15 @@ class COBList
 						$statement->execute($valarray);
 						
 					} else {
-						// if slip has L or T then strip off and set lift  = true
+						// if slip has L or T then strip off and set limbo  = true
 						if (preg_match("/[TL]/", $slip)){
-							$lift = 1;
+							$limbo = 1;
+							if (preg_match("/[L]/", $slip)){
+								$this->addError('1','Slip in Limbo',$row[self::iUnit],$slip,'Waiting to be vacated');
+							}
 							$slip = substr_replace(trim($slip) ,"",-1);
 						} else {
-							$lift = 0;
+							$limbo = 0;
 						}
 						// decide if include email and phone based on user Profile settings if showInfo property is set = false
 						$phone = "";
@@ -721,6 +783,28 @@ class COBList
 									$email = $this->GetEmail($row[self::iEmail]);
 								}
 							}
+						// split slip at colon for tenure and error if no tenure
+						if (stripos($slip,":")!== false) {
+							$temp = explode (':',$slip);
+							$slip = $temp[0];
+							if (strlen($temp[1]) == 8) {
+								$tenure = date("Y.m.d",strtotime($temp[1]));
+							} else {
+								$this->addError('20','Slip tenure',$row[self::iUnit],$temp[1],'Slip tenure format YYYYMMDD');
+								$tenure = null;
+							}	
+						} else {	
+							//missing tenure if N or S
+							if (preg_match("/[NS]/", $slip)){
+								if (preg_match("/[a-f]/", $slip)){
+									$this->addError('21','No Rack tenure',$row[self::iUnit],$slip,'Rack tenure as :YYYYMMDD');
+								} else {
+									$this->addError('20','No Slip tenure',$row[self::iUnit],$slip,'Slip tenure as :YYYYMMDD');
+								}
+							}
+							$tenure = null;
+						}
+
 						//Check if this slip is in SlipMaster report error
 						$sql = "SELECT * FROM SlipMaster WHERE slipid = ?" ;
 						$stmt = $this->pdo->prepare ($sql);
@@ -739,18 +823,20 @@ class COBList
 						if ($result) {
 							//found slip exists so report error
 							$this->addError('1','Slip error',$row[self::iUnit],$result["unit"],'Double booked');
-						}
+						} 
 					
 						//setup SQL statement for insert to Slips table
-						$sql = "INSERT INTO Slips (unit, names, slipid, lift, phone, email, userid)
-							VALUES (:unit, :names, :slipid, :lift, :phone, :email,:userid)";
+						$sql = "INSERT INTO Slips (unit, names, slipid, tenure, limbo, phone, email,emergency, userid)
+							VALUES (:unit, :names, :slipid, :tenure, :limbo, :phone, :email,:emergency,:userid)";
 						$valarray = array(
 								"unit" => $row[7], 
 								"names" => $row[3] . ' ' . $row[6],
 								"slipid" => trim($slip),
-								"lift" => $lift,
+								"limbo" => $limbo,
+								"tenure" => $tenure,
 								"phone" => $phone,
 								"email" => $email,
+								"emergency" => $row[self::iEmergencyContact],
 								"userid" => $row[45]
 								);
 						$statement = $this->pdo->prepare($sql);
@@ -762,7 +848,7 @@ class COBList
 			}
 		}
 		//now query to dbSlip
-		$query1 = $this->pdo->prepare("SELECT dock, b.slipid, b.class, rate, b.type, b.scondition, a.names, unit, lift, phone, email
+		$query1 = $this->pdo->prepare("SELECT dock, b.slipid, b.class, FORMAT(rate,0), b.type, b.scondition, a.names, unit, tenure, limbo, phone, email, emergency
 							FROM SlipMaster b
 							LEFT OUTER JOIN Slips a ON a.slipid = b.slipid
 							JOIN RateMaster c ON b.class = c.class
@@ -781,7 +867,7 @@ class COBList
 		
 		
 		//now query to dbKayak
-		$query1 = $this->pdo->prepare("SELECT dock, b.slipid, b.class, rate, b.type, b.scondition, a.names, unit, lift, phone, email 
+		$query1 = $this->pdo->prepare("SELECT dock, b.slipid, b.class, rate, b.type, b.scondition, a.names, unit, tenure, limbo, phone, email, emergency 
 							FROM SlipMaster b
 							LEFT OUTER JOIN Slips a ON a.slipid = b.slipid
 							JOIN RateMaster c ON b.class = c.class
@@ -805,7 +891,7 @@ class COBList
 		$result = $query1->fetchALL(PDO::FETCH_ASSOC);
 		// now loop each row and add error 
 		foreach ($result as $temp) {
-			$this->addError('2','Vacant Rack',$temp['slipid'],'Fill rack','Fill from waitlist');
+			$this->addError('1','Vacant Rack',$temp['slipid'],'Fill rack','Fill from waitlist');
 		}
 			
 		return;
@@ -903,7 +989,7 @@ class COBList
 			if ($temp = $this->GetFullUnit($row[self::iUnit])) {
 				foreach ($temp as $unit) {
 				// now add to UnitUser table
-				// insert User1
+				// insert User1 if not already in table
 				// decide if include email and phone based on user Profile settings if showInfo property is set = false
 				$cphone = "";
 				$hphone = "";
@@ -926,30 +1012,33 @@ class COBList
 				} else {
 					$v = "No";
 				}
-				$sql = "INSERT INTO UserUnit (unit, owner, voter, lastname, firstname, email, cellphone, homephone, emergency, unitwatcher, address, citystatezip, userid)
-						VALUES (:unit, :owner, :voter,:lname, :fname, :email, :cell, :home, :emer, :watch, :address, :citystatezip, :userid)";
-				// execute the SQL statement
-				$stmt = $this->pdo->prepare ($sql);
-				if ($stmt->execute(array(
-					"unit" => $unit,
-					"owner" => $row[30],
-					"voter" => $v,
-					"lname" => $row[6],
-					"fname" => $row[3],
-					"email" => $email,
-					"cell" => $cphone,
-					"home" => $hphone,
-					"emer" => substr($row[33],0,50),
-					"watch" => substr($row[34],0,50),
-					"address" => $row[47],
-					"citystatezip" => $row[48],
-					"userid" => $row[45]
-					))) {
-				} else {
-					error_log ("Failed " . $unit );
+				// insert if not already in table
+				if (!$this->IsInUserUnit($unit, $row[6], $row[3], $email)) {
+					$sql = "INSERT INTO UserUnit (unit, owner, voter, lastname, firstname, email, cellphone, homephone, emergency, unitwatcher, address, citystatezip, userid)
+							VALUES (:unit, :owner, :voter,:lname, :fname, :email, :cell, :home, :emer, :watch, :address, :citystatezip, :userid)";
+					// execute the SQL statement
+					$stmt = $this->pdo->prepare ($sql);
+					if ($stmt->execute(array(
+						"unit" => $unit,
+						"owner" => $row[30],
+						"voter" => $v,
+						"lname" => $row[6],
+						"fname" => $row[3],
+						"email" => $email,
+						"cell" => $cphone,
+						"home" => $hphone,
+						"emer" => substr($row[33],0,50),
+						"watch" => substr($row[34],0,50),
+						"address" => $row[47],
+						"citystatezip" => $row[48],
+						"userid" => $row[45]
+						))) {
+					} else {
+						error_log ("Failed " . $unit );
+					}
 				}
 				// insert User2 if exists
-				if (strlen($row[15])>0 ){
+				if (strlen($row[self::iUser2LastName])>0 ){
 					// decide if include email and phone based on user Profile settings if showInfo property is set = false
 					$cphone = "";
 					$email = "";
@@ -969,33 +1058,34 @@ class COBList
 					} else {
 						$v = "No";
 					}
-					$sql = "INSERT INTO UserUnit (unit, owner, voter, lastname, firstname, email, cellphone, homephone, emergency, unitwatcher, address, citystatezip, userid)
-							VALUES (:unit, :owner, :voter,:lname, :fname, :email, :cell, :home, :emer, :watch, :address, :citystatezip, :userid)";
-					// execute the SQL statement - if returns fail then report
-					$stmt = $this->pdo->prepare ($sql);
-					if ($stmt->execute(array(
-						"unit" => $unit,
-						"owner" => $row[30],
-						"voter" => $v,
-						"lname" => $row[15],
-						"fname" => $row[14],
-						"email" => $email,
-						"cell" => $cphone,
-						"home" => $hphone,
-						"emer" => substr($row[33],0,50),
-						"watch" => substr($row[34],0,50),
-						"address" => $row[47],
-						"citystatezip" => $row[48],
-						"userid" => $row[45]
-						))) {
-					} else {
-						error_log ("Failed " . $unit );
+					if (!$this->IsInUserUnit($unit, $row[self::iUser2LastName], $row[self::iUser2FirstName], $email)) {
+						$sql = "INSERT INTO UserUnit (unit, owner, voter, lastname, firstname, email, cellphone, homephone, emergency, unitwatcher, address, citystatezip, userid)
+								VALUES (:unit, :owner, :voter,:lname, :fname, :email, :cell, :home, :emer, :watch, :address, :citystatezip, :userid)";
+						// execute the SQL statement - if returns fail then report
+						$stmt = $this->pdo->prepare ($sql);
+						if ($stmt->execute(array(
+							"unit" => $unit,
+							"owner" => $row[30],
+							"voter" => $v,
+							"lname" => $row[self::iUser2LastName],
+							"fname" => $row[self::iUser2FirstName],
+							"email" => $email,
+							"cell" => $cphone,
+							"home" => $hphone,
+							"emer" => substr($row[33],0,50),
+							"watch" => substr($row[34],0,50),
+							"address" => $row[47],
+							"citystatezip" => $row[48],
+							"userid" => $row[45]
+							))) {
+						} else {
+							error_log ("Failed " . $unit );
+						}
 					}
-				}
+					}
 				}	
 			}
 		}
-
 		//now query to dbUnit
 		$query1 = $this->pdo->prepare("SELECT b.unit, a.owner, a.voter, a.lastname, a.firstname, a.email, a.cellphone, a.homephone, b.space, a.emergency, a.unitwatcher, a.address, a.citystatezip
 							FROM UnitMaster b
@@ -1003,6 +1093,15 @@ class COBList
 							ORDER BY b.unit");
 		$query1->execute();
 		$this->dbUnit = $query1->fetchALL(PDO::FETCH_ASSOC);
+		
+		// Now check if Owner = No and fill in with LeaseEnd or Partner by checking dbRenter
+		foreach ($this->dbUnit as &$row) {
+			if ($row['owner'] == "No") {
+				if (in_array($row['unit'],array_column($this->dbRenter,2))) {
+					$row['owner'] = $this->GetLeaseEnd($row['unit']);
+				}
+			}
+		}
 		
 		//now query to build dbVoter
 		$sql = "SELECT DISTINCT a.bldg, a.unit, b.lastname, b.firstname, b.address, b.citystatezip FROM UnitMaster a left join UserUnit b ON a.unit = b.unit AND b.voter = 'Yes' ORDER BY a.unit";
@@ -1018,7 +1117,7 @@ class COBList
 		$result = $query1->fetchALL(PDO::FETCH_ASSOC);
 		// now loop each row and add error 
 		foreach ($result as $temp) {
-			$this->addError('2','Voter Error',$temp['unit'],'No Voter','Missing voter');
+			$this->addError('6','Voter Error',$temp['unit'],'No Voter','Missing voter');
 		}
 		
 		//now check multiple voters
@@ -1068,6 +1167,7 @@ class COBList
 		
 		//sort
 		sort($this->dbErr);
+		sort($this->dbRes);
 		sort($this->dbPets);
 		sort($this->dbRenter);
 
@@ -1079,18 +1179,21 @@ class COBList
 			$writer->setColWidths('Errors',array(10,20,30,20,40));
 			$writer->writeSheetHeader('Errors',$this->hdrErr,true);
 			$writer->writeSheetRow('Errors',array(date('m/d/y'),'Condo on the Bay Error Listing'),$h1style);
+			$writer->writeSheetRow('Errors',array(" "));	//blank row
 			$writer->writeSheetRow('Errors',array_keys($this->hdrErr),$hstyle);
 			$writer->writeSheet($this->dbErr,'Errors',$this->hdrErr,true);
 			
 			$writer->setColWidths('Listing',array(20,15,20,10,15,15,30,30,30));
 			$writer->writeSheetHeader('Listing',$this->hdrRes,true);
 			$writer->writeSheetRow('Listing',array(date('m/d/y'),'Condo on the Bay Owner & Renter Listing'),$h1style);
+			$writer->writeSheetRow('Listing',array(" "));	//blank row
 			$writer->writeSheetRow('Listing',array_keys($this->hdrRes),$hstyle);
 			$writer->writeSheet($this->dbRes,'Listing',$this->hdrRes,true);
 			
 			$writer->setColWidths('Renter',array(12,12,20,15,15,15,15,30,30,30));
 			$writer->writeSheetHeader('Renter',$this->hdrRenter,true);
 			$writer->writeSheetRow('Renter',array(date('m/d/y'),'Condo on the Bay Renter Listing'),$h1style);
+			$writer->writeSheetRow('Renter',array(" "));	//blank row
 			$writer->writeSheetRow('Renter',array_keys($this->hdrRenter),$hstyle);
 			$writer->writeSheet($this->dbRenter,'Renter',$this->hdrRenter,true);
 		}
@@ -1099,43 +1202,50 @@ class COBList
 			$writer->writeSheetHeader('Units',$this->hdrUnit,true);
 			$temp = ($this->showInfo) ? 'Internal':'External';
 			$writer->writeSheetRow('Units',array(date('m/d/y'),$temp,'Condo on the Bay Unit Listing'),$h1style);
+			$writer->writeSheetRow('Units',array(" "));	//blank row
 			$writer->writeSheetRow('Units',array_keys($this->hdrUnit),$hstyle);
 			$writer->writeSheet($this->dbUnit,'Units',$this->hdrUnit,true);
 			
-			$writer->setColWidths('Slips',array(12,15,15,10,6,15,20,20,6,20,40));
+			$writer->setColWidths('Slips',array(12,10,15,10,6,15,20,20,10,6,6,20,40));
 			$writer->writeSheetHeader('Slips',$this->hdrSlip,true);
 			$writer->writeSheetRow('Slips',array(date('m/d/y'),$temp,'Condo on the Bay Slip Listing'),$h1style);
+			$writer->writeSheetRow('Slips',array(" "));	//blank row
 			$writer->writeSheetRow('Slips',array_keys($this->hdrSlip),$hstyle);
 			$writer->writeSheet($this->dbSlip,'Slips',$this->hdrSlip,true);
 			
-			$writer->setColWidths('Kayaks',array(12,15,15,10,6,10,20,20,6,20,40));
-			$writer->writeSheetHeader('Kayaks',$this->hdrSlip,true);
+			$writer->setColWidths('Kayaks',array(12,15,15,10,6,10,20,20,10,6,6,20,40));
+			$writer->writeSheetHeader('Kayaks',$this->hdrSlip2,true);
 			$writer->writeSheetRow('Kayaks',array(date('m/d/y'),$temp,'Condo on the Bay Kayak Listing'),$h1style);
-			$writer->writeSheetRow('Kayaks',array_keys($this->hdrSlip),$hstyle);
-			$writer->writeSheet($this->dbKayak,'Kayaks',$this->hdrSlip,true);
+			$writer->writeSheetRow('Kayaks',array(" "));	//blank row
+			$writer->writeSheetRow('Kayaks',array_keys($this->hdrSlip2),$hstyle);
+			$writer->writeSheet($this->dbKayak,'Kayaks',$this->hdrSlip2,true);
 		}
 		if ($this->fullRun && $this->showInfo) {
 			$writer->setColWidths('Pets WSD-ESA',array(20,15,15,50,15,30,30,30));
 			$writer->writeSheetHeader('Pets WSD-ESA',$this->hdrPets,true);
 			$writer->writeSheetRow('Pets WSD-ESA',array(date('m/d/y'),$temp,'Condo on the Bay Pets & WSD/ESA Listing'),$h1style);
+			$writer->writeSheetRow('Pets WSD-ESA',array(" "));	//blank row
 			$writer->writeSheetRow('Pets WSD-ESA',array_keys($this->hdrPets),$hstyle);
 			$writer->writeSheet($this->dbPets,'Pets WSD-ESA',$this->hdrPets,true);
 			
 			$writer->setColWidths('Staff',array(20,15,40,40,20));
 			$writer->writeSheetHeader('Staff',$this->hdrStaff,true);
 			$writer->writeSheetRow('Staff',array(date('m/d/y'),'Condo on the Bay Staff Listing'),$h1style);
+			$writer->writeSheetRow('Staff',array(" "));	//blank row
 			$writer->writeSheetRow('Staff',array_keys($this->hdrStaff),$hstyle);
 			$writer->writeSheet($this->dbStaff,'Staff',$this->hdrStaff,true);
 			
 			$writer->setColWidths('Grid T1',array(10,20,20,20,20,20,20,20,20));
 			$writer->writeSheetHeader('Grid T1',$this->hdrGridT1,true);
 			$writer->writeSheetRow('Grid T1',array(date('m/d/y'),'Condo on the Bay T1 Grid'),$h1style);
+			$writer->writeSheetRow('Grid T1',array(" "));	//blank row
 			$writer->writeSheetRow('Grid T1',array_keys($this->hdrGridT1),$hstyle);
 			$writer->writeSheet($this->dbGridT1,'Grid T1',$this->hdrGridT1,true);
 			
 			$writer->setColWidths('Grid T2',array(10,20,20,20,20,20,20,20,20));
 			$writer->writeSheetHeader('Grid T2',$this->hdrGridT2,true);
 			$writer->writeSheetRow('Grid T2',array(date('m/d/y'),'Condo on the Bay T2 Grid'),$h1style);
+			$writer->writeSheetRow('Grid T2',array(" "));	//blank row
 			$writer->writeSheetRow('Grid T2',array_keys($this->hdrGridT2),$hstyle);
 			$writer->writeSheet($this->dbGridT2,'Grid T2',$this->hdrGridT2,true);
 		}
@@ -1170,15 +1280,60 @@ class COBList
 	// explodes unit and returns True if in dbRenter
 		// first get unit array
 		$temp = $this->GetFullUnit($units);
-		foreach ($temp as $unit) {
-			// return False if not in dbRenter and not Partner
-			if (!in_array($unit,array_column($this->dbRenter,2))) {
-				return false;
+		if ($temp) {
+			foreach ($temp as $unit) {
+				// return False if not in dbRenter and not Partner
+				if (!in_array($unit,array_column($this->dbRenter,2))) {
+					return false;
+				}
+			}
+			// return true if found in dbRenter
+			return true;
+		}
+		return false;
+	// end of IsAllRented
+	}
+	
+	function IsIndbRes($lname,$fname,$unit,$email,$hphone,$cphone) {
+	// True if person is already in dbRes
+		foreach ($this->dbRes as &$row) {
+			if (trim($row[0]) == trim($lname) 
+				AND trim($row[1]) == trim($fname) 
+				AND trim($row[2]) == trim($unit)){
+				// make sure best email is used
+				if (strlen($email) > strlen($row[6])) {
+					$row[6] = $email;
+				}
+				if (strlen($hphone) > strlen($row[4])) {
+					$row[4] = $hphone;
+				}
+				if (strlen($cphone) > strlen($row[5])) {
+					$row[5] = $cphone;
+				}
+				return true;
 			}
 		}
-		// return true if found in dbRenter
-		return true;
-	// end of IsAllRented
+		return false;
+	}
+	
+	function IsInUserUnit($unit, $lname, $fname, $email) {
+	// returns false if unit.lname.fname not in table UserUnit
+		$sql = "SELECT userunitid, email FROM UserUnit WHERE unit = :unit AND lastname = :lname AND firstname = :fname" ;
+		$stmt = $this->pdo->prepare ($sql);
+		$stmt->execute([$unit,$lname,$fname]);
+		$result = $stmt->fetch();
+		if (!$result) {
+			return false;
+		} else {
+			//found user so now check if email matches
+			if (strlen($email) > 0) {
+				if (!($email == $result["email"])) {
+					//update email
+					$stmt = $this->pdo->query("UPDATE UserUnit SET email = '" . $email . "' WHERE userunitid = '" . $result["userunitid"] . "'");
+				}
+			}
+			return true;
+		}
 	}
 	
 	function GetAddress($row) {
@@ -1435,8 +1590,8 @@ class COBList
 	function addError($level, $function, $unit, $name, $message)
 	{
 		// don't log errors if gone or sold
-		if ((stripos($unit,'gone') !== false) || (stripos($unit,'sold') !== false)) {
-		} else {
+//		if ((stripos($unit,'gone') !== false) || (stripos($unit,'sold') !== false)) {
+//		} else {
 			$tmp = array(
 				'level' => $level,
 				'function'	=> $function,
@@ -1445,16 +1600,21 @@ class COBList
 				'message'	=> $message,
 				);
 			$this->dbErr[] = $tmp;
-		}
+//		}
 	return;
 	}
-
+	
+function getFolder(){
+	if (file_exists("COBfolder.php")) {include ("COBfolder.php");}
+	if (!isset($pfolder)) {$pfolder="";}
+	return $pfolder;
+}
+	
 function opendb() {
 	//function to open PDO database and return PDO object
 	if (isset($this->pdo)) {return true;}
 	// first include file containing host, db, user, password so not in www folder
-	if (file_exists("COBfolder.php")) {include ("COBfolder.php");}
-	if (!isset($pfolder)) {$pfolder="";}
+	$pfolder=$this->getFolder();
 	require ($pfolder . 'COBconnect.php');
 	$charset = 'utf8';
 	$dsn = "mysql:host={$host};dbname={$db};charset={$charset}";
@@ -1511,9 +1671,11 @@ function CheckUnitMaster ($row) {
 						break;
 					}
 				} elseif (stripos($row[self::iOwner],"no")!== false) {
-					//renters should not have owner access
+					//renters should not have owner access unless Partner
 					if (!($row[self::iAccess] == "MEMBER") ) {
-						$this->addError('2','Renter error',$u,$row[self::iUser1LastName],'Renter with wrong access');
+						if (!($row[self::iOfficialVoter] == "Partner") ) {
+							$this->addError('3','Renter error',$u,$row[self::iUser1LastName],'Renter with wrong access');
+						}
 					}
 					$S .= sprintf("%02d", $result['stack']) . ", ";
 				} else {
@@ -1542,8 +1704,9 @@ return;
 
 function CheckPhoneFormat($p) {
 	if (strlen(trim($p))>0) {
-		if (!preg_match('/^(\+1|001)?\(?([0-9]{3})\)?([ .-]?)([0-9]{3})([ .-]?)([0-9]{4})/',$p)) { 
-//		if (!preg_match('\(?[2-9][0-8][0-9]\)?[-. ]?[1-9][0-9]{2}[-. ]?[0-9]{4}',$p)) {
+		if  (substr($p,0,1) == "+") { 	//international
+			return true;
+		} elseif (!preg_match('/^(\+1|001)?\(?([0-9]{3})\)?([ .-]?)([0-9]{3})([ .-]?)([0-9]{4})/',$p)) {
 			return false;
 		} else {
 			return true;
@@ -1581,12 +1744,12 @@ function GetLeaseDates($row) {
 	// add check for partner v3.0.8
 	if ($D[0] == "Partner"){
 	//ignore error if partner of owner
-		$D[1]="";
+		$D[1]="Partner ";
 	} elseif (count($D) !== 2) {
 		$temp = 'Wrong lease date format=' . $row[self::iOfficialVoter];
 		$this->addError('5','Lease dates',$row[self::iUnit],$row[self::iUser1LastName],$temp);
 		$D[1] = "Error";
-	} elseif (strlen($D[0]) > 8) {
+	} elseif (strlen(trim($D[0])) > 8) {
 		$temp = 'Wrong lease date format=' . $row[self::iOfficialVoter];
 		$this->addError('5','Lease dates',$row[self::iUnit],$row[self::iUser1LastName],$temp);
 	} else {
@@ -1594,6 +1757,16 @@ function GetLeaseDates($row) {
 		$D[1] = date_format(date_create_from_format("m/d/y",$D[1]),"Y-m-d");
 	}
 	return $D;
+}
+
+function GetLeaseEnd($unit) {
+	// seaches dbRenter for unit and return lease end from first column
+	foreach ($this->dbRenter as $row) {
+		if ($row[2] == $unit) {
+			return $row[0];
+		}
+	}
+	return null;
 }
 
 function GetFullUnit($unit) {
@@ -1683,7 +1856,7 @@ function BuildDeltaResponse() {
 	$response = array ('Response' => array ( 
 		'Title' => 'COBDelta', 
 		'Version' => self::iVersion, 
-		'Copyright' => 'Copyright 2018-2022 Pathfinder Associates, Inc.',
+		'Copyright' => 'Copyright 2018-2024 Pathfinder Associates, Inc.',
 		'Termsofservice' => 'http://pathfinderassociatesinc.com/COB/TermsofService.pdf',
 		'Documentation' => 'http://pathfinderassociatesinc.com/COB/Documentation.pdf',
 		'Author' => 'Christopher Barlow',
@@ -1724,6 +1897,7 @@ function BuildDeltaACD() {
 		$wasData = $this->GetRunBlob($this->wasDelta);
 		//loop thru is and look for was
 		$delta = array();	//main delta of all ACD
+		$summary = array(); //summary of key field changes
 		$added = array ();	//all added
 		$changed = array ();	//all changed
 		$deleted = array ();	//all deleted
@@ -1732,7 +1906,6 @@ function BuildDeltaACD() {
 		
 		foreach($isData as $row) {
 			//look for userid in wasData
-
 			$found = $this->GetRunUserID($wasData,$row['UserID']);
 			if (is_array($found)) {
 				//found so look for Is changes
@@ -1763,12 +1936,181 @@ function BuildDeltaACD() {
 					$deleted[] = array("UserID"=>$row['UserID'],"Unit"=>$row['Unit'],"Lastname"=>$row['User1LastName'], "Firstname"=>$row['FirstName'],"Fields"=>array("Was"=>$deletewas));
 			}
 		}
+	// now build Summary array
+	// first loop thru added array,then deleted, then changed 
+	foreach($added as $rowfull) {
+		$row = $rowfull['Fields']['Is'];
+		$summary[]= array("Type"=>"Added",
+			"Lastname"=>$rowfull['Lastname'], 
+			"Firstname"=>$rowfull['Firstname'],
+			"Unit"=>$rowfull['Unit'],
+			"Enabled"=>$row['Enabled'],
+			"Access"=>$row['Access'],
+			"Email"=>$row['Email'],
+			"Owner"=>$row['Owner']);
+	}
 	
-	//then combine three arrays into Delta
-	$delta =  array("Added"=>$added, "Changed"=>$changed, "Deleted"=>$deleted);
+	foreach($deleted as $rowfull) {
+		$row = $rowfull['Fields']['Was'];
+		$summary[]= array("Type"=>"Deleted",
+			"Lastname"=>$rowfull['Lastname'], 
+			"Firstname"=>$rowfull['Firstname'],
+			"Unit"=>$rowfull['Unit'],
+			"Enabled"=>$row['Enabled'],
+			"Access"=>$row['Access'],
+			"Email"=>$row['Email'],
+			"Owner"=>$row['Owner']);
+	}
+	foreach($changed as $rowfull) {
+		$unit="";
+		$enabled = "";
+		$access = "";
+		$email="";
+		$owner="";
+		$row = $rowfull['Fields'];
+		if (array_key_exists('Unit',$row['Is'])) {
+			$unit = $row['Was']['Unit']." > ";
+		}
+		if (array_key_exists("Enabled",$row['Is'])) {
+			$enabled = $row['Was']['Enabled']." > ".$row['Is']['Enabled'];
+		}
+		if (array_key_exists('Access',$row['Is'])) {
+			$access = $row['Was']['Access']." > ".$row['Is']['Access'];
+		}
+		if (array_key_exists('Owner',$row['Is'])) {
+			$owner = $row['Was']['Owner']." > ".$row['Is']['Owner'];
+		}
+		if (array_key_exists('Email',$row['Is'])) {
+			$email = $row['Was']['Email']." > ".$row['Is']['Email'];
+		}
+		$summary[]= array("Type"=>"Changed",
+			"Lastname"=>$rowfull['Lastname'], 
+			"Firstname"=>$rowfull['Firstname'],
+			"Unit"=>$unit . $rowfull['Unit'],
+			"Enabled"=>$enabled,
+			"Access"=>$access,
+			"Email"=>$email,
+			"Owner"=>$owner);
+	}
+	
+
+	//then combine four arrays into Delta
+	$delta =  array("Summary"=>$summary,"Added"=>$added, "Changed"=>$changed, "Deleted"=>$deleted);
 	return $delta;
 // end of BuildDeltaACD	
 }
+
+function WriteSKResponse() {
+	// Writes encrypted JSON file of Slip, Kayak, Wait info
+	// This is called at the end of each full COBList run
+	// Creates encrypted file of JSON for the Slip & Kayak display
+	//setup header for json including when COBList was run
+	$checkmsg="";
+//	$isData = $this->GetRunInfo($this->isDelta);
+	$response = array ('Response' => array ( 
+		'Title' => 'COBSKW',
+		'Run' => date("d-M-Y "),
+		'Version' => self::iVersion, 
+		'Copyright' => 'Copyright 2018-2024 Pathfinder Associates, Inc.',
+		'Termsofservice' => 'https://pathfinderassociatesinc.com/COB/TermsofService.pdf',
+		'Documentation' => 'https://pathfinderassociatesinc.com/COB/Documentation.pdf',
+		'Author' => 'Christopher Barlow',
+		'Data' => $response["Data"] = $this->BuildSKDetail()
+		) 
+	);
+			if ($this->logging){$this->addError("T601", "
+			startWrite SKData", $this->timeRun($this->sTime),"","");}
+	//now encrypt Response and write to file
+	$file = $this->getFolder() . "SKWData.json";
+	file_put_contents($file, json_encode($response));
+			if ($this->logging){$this->addError("T61", "doneWrite SKData", $this->timeRun($this->sTime),"","");}
+
+//	$this->LogEmail($checkmsg, "COBSKW run",json_encode($response));
+	return $response;
+// end of WriteSKResponse
+}
+
+function BuildSKDetail() {
+	// builds detailed records for Slip, Kayak, Wait
+	// TODO speed up this function with one query and array split funtions
+	$data = array();	//main array of all slip kayak wait info
+	$slips = array ();	//all slips
+	$racks = array ();	//all racks
+
+	//first get North Data
+	$sql = "SELECT b.slipid, b.class, b.scondition, a.names, a.unit, a.limbo, a.phone, a.email
+							FROM SlipMaster b
+							LEFT OUTER JOIN Slips a ON a.slipid = b.slipid
+							WHERE b.type = 'Slip' 
+							AND b.dock = 'North Dock'
+							ORDER BY b.slipid";
+	$stmt = $this->pdo->prepare($sql);
+	$stmt->execute();
+	$slips["North"] = $stmt->fetchall(PDO::FETCH_ASSOC);
+			if ($this->logging){$this->addError("T58", "Start SlipSouth", $this->timeRun($this->sTime),"","");}
+
+	//then get South Data
+	$sql = "SELECT b.slipid, b.class, b.scondition, a.names, a.unit, a.limbo, a.phone, a.email
+							FROM SlipMaster b
+							LEFT OUTER JOIN Slips a ON a.slipid = b.slipid
+							WHERE b.type = 'Slip' 
+							AND b.dock = 'South Dock'
+							ORDER BY b.slipid";
+	$stmt = $this->pdo->prepare($sql);
+	$stmt->execute();
+	$slips["South"] = $stmt->fetchall(PDO::FETCH_ASSOC);
+	// then get Wait Data
+	$sql = "SELECT date,number, names, unit, phone, email
+							FROM WaitList
+							WHERE type = 'S' 
+							ORDER BY date";
+	$stmt = $this->pdo->prepare($sql);
+	$stmt->execute();
+	$slips["Wait"] = $stmt->fetchall(PDO::FETCH_ASSOC);
+			if ($this->logging){$this->addError("T59", "Start RackNorth", $this->timeRun($this->sTime),"","");}
+
+	// then repeat for racks
+	//first get North Data
+	$sql = "SELECT b.slipid, b.class, b.scondition, a.names, a.unit, a.phone, a.email
+							FROM SlipMaster b
+							LEFT OUTER JOIN Slips a ON a.slipid = b.slipid
+							WHERE b.type = 'Kayak' 
+							AND b.dock = 'North Dock'
+							ORDER BY b.slipid";
+	$stmt = $this->pdo->prepare($sql);
+	$stmt->execute();
+	$racks["North"] = $stmt->fetchall(PDO::FETCH_ASSOC);
+	//then get South Data
+	$sql = "SELECT b.slipid, b.class, b.scondition, a.names, a.unit, a.phone, a.email
+							FROM SlipMaster b
+							LEFT OUTER JOIN Slips a ON a.slipid = b.slipid
+							WHERE b.type = 'Kayak' 
+							AND b.dock = 'South Dock'
+							ORDER BY b.slipid";
+	$stmt = $this->pdo->prepare($sql);
+	$stmt->execute();
+	$racks["South"] = $stmt->fetchall(PDO::FETCH_ASSOC);
+	// then get Wait Data
+	$sql = "SELECT date,number, names, unit, phone, email
+							FROM WaitList
+							WHERE type = 'K' 
+							ORDER BY date";
+	$stmt = $this->pdo->prepare($sql);
+	$stmt->execute();
+	$racks["Wait"] = $stmt->fetchall(PDO::FETCH_ASSOC);
+
+	//then combine arrays into Data
+	$data =  array("Slips"=>$slips, "Racks"=>$racks);
+	return $data;
+// end of BuildSKDetail	
+}
+
+function GetSKData($msg){
+	// reads SKData file and returns results as array
+	return json_decode(file_get_contents($this->getFolder() . "SKWData.json"));
+// end of GetSKData	
+}
+
 
 function PAIEncrypt($blob) {
 	return $this->paicrypt->encrypt(serialize($blob));

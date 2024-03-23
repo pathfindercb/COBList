@@ -1,13 +1,12 @@
 <?php
 /** PAI COBSlips -  View current slips and waitlist
- * package    PAI_COBList 20240123
- * @license   Copyright © 2018-2024 Pathfinder Associates, Inc.
- *	opens the coblist db and view the slip table
+ * package    PAI_COBList 20240226
+ * @license   Copyright © 2018-2024 Pathfinder Associates, Inc
+ *	
  *	1. check for passcode
- *	2. opendb and get last coblist run per cobdelta
- *	3. query slip/slipmaster join? or just slip in graphic format
- *	4. query waitlist
+ *	2. Get mCob class to retrieve SKData file & display
  *	5. dupe for kayaks
+ *	Added Limbo
  */
 
 
@@ -17,23 +16,28 @@ if(isset($_GET['passcode']) & !empty($_GET['passcode']) & $_GET['passcode'] == '
 }else{
 	header("Location: https://condoonthebay.com");
 }
-
-// open COBList database and set PDO object
-require ("COBdbopen.php");
-
-// get latest full COBList run
-	// queries the RunLog table and returns array of logid & filetime For Delta
-		$sql = "SELECT filetime FROM RunLog WHERE type = 1 OR type = 5 ORDER BY filetime desc";
-		$stmt = $pdo->prepare($sql);
-		$stmt->execute();
-		$result = $stmt->fetch(PDO::FETCH_ASSOC);
-		$isdate = date("d-M-Y",$result['filetime']);
-	
-
+	include ('PAI_coblist.class.php');
+	register_shutdown_function('shutDownFunction');
+	$msg = "";
+	$mCOB = new COBList();
+	// get SKData file from private folder decrypted
+	$results = $mCOB->GetSKData($msg);
+	if ($results) {
+		$isdate = $results->Response->Run;
+	}
 ?>
 <!DOCTYPE html>
 <html>
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-M9NG7L9MC8"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-M9NG7L9MC8');
+</script>
 	<title>Slips & Wait List</title>
 	<!-- Latest compiled and minified CSS -->
 		<?php include "stdHeader.html";?>
@@ -43,17 +47,6 @@ require ("COBdbopen.php");
 	<div class="row">
 	<h2>Slips & Wait List (updated <?php echo $isdate; ?>)</h2>
 	<h4> North Dock </h4>
-<?php
-// query all slips - leased and vacant
-$sql = "SELECT b.slipid, b.class, b.scondition, a.names, a.unit
-							FROM SlipMaster b
-							LEFT OUTER JOIN Slips a ON a.slipid = b.slipid
-							WHERE b.type = 'Slip' 
-							AND b.dock = 'North Dock'
-							ORDER BY b.slipid";
-$stmt = $pdo->prepare($sql);
-$stmt->execute();
-?>
 		<table class="table table-sm"> 
 		<thead> 
 			<tr> 
@@ -66,32 +59,21 @@ $stmt->execute();
 		</thead> 
 		<tbody> 
 		<?php 
-		while($r = $stmt->fetch(PDO::FETCH_ASSOC)){
+		foreach ($results->Response->Data->Slips->North as $r) {
 		?>
-			<tr class="p-0 <?php if(is_null($r['unit'])){echo ' table-warning';}?>"> 
-				<th scope="row"><?php echo $r['slipid']; ?></th> 
-				<td><?php echo $r['class']; ?></td> 
-				<td><?php echo $r['scondition']; ?></td> 
-				<td> <?php echo $r['names'];?></td> 
-				<td><?php echo $r['unit']; ?></td> 
+			<tr class="p-0 <?php if(is_null($r->unit)){echo ' table-warning';}?>"> 
+				<th scope="row"><?php echo $r->slipid; ?></th> 
+				<td><?php echo $r->class; ?></td> 
+				<?php if(($r->limbo)){echo '<td class = "table-info"> Slip Coming Available';} else {echo '<td>' . $r->scondition;}?></td> 
+				<td> <?php echo $r->names;?></td> 
+				<td><?php echo $r->unit; ?></td> 
 			</tr> 
 		<?php } ?>
 		</tbody> 
 		</table>
 	<br>
 	<h4> South Dock </h4>
-<?php
-// query all slips - leased and vacant
-$sql = "SELECT b.slipid, b.class, b.scondition, a.names, a.unit
-							FROM SlipMaster b
-							LEFT OUTER JOIN Slips a ON a.slipid = b.slipid
-							WHERE b.type = 'Slip' 
-							AND b.dock = 'South Dock'
-							ORDER BY b.slipid";
-$stmt = $pdo->prepare($sql);
-$stmt->execute();
-?>
-		<table class="table "> 
+		<table class="table table-sm"> 
 		<thead> 
 			<tr> 
 				<th>Slip</th> 
@@ -103,32 +85,21 @@ $stmt->execute();
 		</thead> 
 		<tbody> 
 		<?php 
-		while($r = $stmt->fetch(PDO::FETCH_ASSOC)){
+		foreach ($results->Response->Data->Slips->South as $r) {
 		?>
-			<tr class="p-0 <?php if(is_null($r['unit'])){echo ' table-warning';}?>"> 
-				<th scope="row"><?php echo $r['slipid']; ?></th> 
-				<td><?php echo $r['class']; ?></td> 
-				<td><?php echo $r['scondition']; ?></td> 
-				<td> <?php echo $r['names'];?></td> 
-				<td><?php echo $r['unit']; ?></td> 
-
+			<tr class="p-0 <?php if(is_null($r->unit)){echo ' table-warning';}?>"> 
+				<th scope="row"><?php echo $r->slipid; ?></th> 
+				<td><?php echo $r->class; ?></td> 
+				<?php if(($r->limbo)){echo '<td class = "table-info"> Slip Coming Available';} else {echo '<td>' . $r->scondition;}?></td> 
+				<td> <?php echo $r->names;?></td> 
+				<td><?php echo $r->unit; ?></td> 
 			</tr> 
 		<?php } ?>
 		</tbody> 
 		</table>
 	<br>
 	<h4> Slip Wait List </h4>
-<?php
-// query all slips - leased and vacant
-$sql = "SELECT date,number, names, unit
-							FROM WaitList
-							WHERE type = 'S' 
-							ORDER BY date";
-$stmt = $pdo->prepare($sql);
-$stmt->execute();
-?>
-		<div class="p-15">
-		<table class="table"> 
+		<table class="table-sm"> 
 		<thead> 
 			<tr> 
 				<th>Date</th> 
@@ -139,13 +110,13 @@ $stmt->execute();
 		</thead> 
 		<tbody> 
 		<?php 
-		while($r = $stmt->fetch(PDO::FETCH_ASSOC)){
+		foreach ($results->Response->Data->Slips->Wait as $r) {
 		?>
 			<tr> 
-				<th scope="row"><?php echo $r['date']; ?></th> 
-				<td><?php echo $r['names']; ?></td> 
-				<td> <?php echo $r['unit'];?></td> 
-				<td> <?php echo $r['number'];?></td> 
+				<th scope="row"><?php echo $r->date; ?></th> 
+				<td><?php echo $r->names; ?></td> 
+				<td> <?php echo $r->unit;?></td> 
+				<td> <?php echo $r->number;?></td> 
 
 			</tr> 
 		<?php } ?>
@@ -158,11 +129,27 @@ $stmt->execute();
 <footer class="page-footer font-small blue pt-4 mt-4">
 <!--Copyright-->
     <div class="footer-copyright py-3 text-center">
+        <a href="DockLayoutGraphic.pdf" target="_blank">Dock Diagram</a><br>
         <a href="License.htm"  target="_blank">Licensed for free use</a> © 2018-2024  
-        <a href="http://pathfinderassociatesinc.com/">Pathfinder Associates, Inc.</a>
+        <a href="http://pathfinderassociatesinc.com/">Pathfinder Associates, Inc.</a>&emsp;&emsp;
+		    Hits = <?php file_put_contents('counts.txt',"\n",FILE_APPEND|LOCK_EX);
+			echo (filesize("counts.txt")); ?> 
     </div>
 <!--/.Copyright-->
 </footer>
 <!--/.Footer-->
+<?php
+unset($mCOB);
+
+function shutDownFunction() { 
+    $error = error_get_last();
+    // fatal error, E_ERROR === 1
+    if ($error['type'] === E_ERROR) { 
+        //do your stuff
+		//error_log ($_SERVER['REMOTE_ADDR'] . '=' . $msg,0);
+		echo "Program failed! Please try again using left menu. If it keeps failing notify Chris Barlow.";
+    } 
+}
+?>
 </body>
 </html>
