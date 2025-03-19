@@ -2,6 +2,7 @@
 /*	Updated for column width by Pathfinder Associates, Inc. 4/11/2019
  *	Updated for curly bracket line 339
  *	Updated for landscape and fit and Title property 3/31/18
+ *	Added updateFormat function to change format below header line 220
  * @license MIT License  
  * */
 
@@ -12,7 +13,7 @@ class XLSXWriter
 	//------------------------------------------------------------------
 	//http://office.microsoft.com/en-us/excel-help/excel-specifications-and-limits-HP010073849.aspx
 	// added version property so apps can check version
-	const version = "0.70";
+	const version = "0.75";
 	const EXCEL_2007_MAX_ROW=1048576;
 	const EXCEL_2007_MAX_COL=16384;
 	//------------------------------------------------------------------
@@ -218,6 +219,18 @@ class XLSXWriter
 		}
 		return $column_types;
 	}
+	
+	public function updateFormat($sheet_name, array $header_types) {
+    if (empty($sheet_name) || empty($header_types))
+        return;
+    if(empty($this->sheets[$sheet_name])) {
+        $this->writeSheetHeader($sheet_name, $header_types, array('suppress_row'=>true));
+        return;
+    }
+    $sheet = &$this->sheets[$sheet_name];
+    $sheet->columns = $this->initializeColumnTypes($header_types);
+    $this->current_sheet = $sheet_name;
+}
 
 	public function writeSheetHeader($sheet_name, array $header_types, $suppress_row = false)
 	{

@@ -1,7 +1,7 @@
 <?php
 /** PAI_coblist class file 
- * package    PAI_COBList 20240323
- * @license   Copyright © 2018-2024 Pathfinder Associates, Inc.
+ * package    PAI_COBList 20250318
+ * @license   Copyright © 2018-2025 Pathfinder Associates, Inc.
  * Public Methods: 
  *		CheckFile-checks uploaded CSV for format and size
  *		ProcessFile-main process to create working arrays/tables and create XLSX
@@ -20,6 +20,7 @@
  *		Added Tenure to slip/rack field
  *		Added Access & Lease End to Listing sheet
  *		Added LeaseEnd to Units and blank row above field header
+ *		Added logic in GetFullUnit for missing space after #
  */
 class COBList
 {
@@ -27,7 +28,7 @@ class COBList
      * main class
      */   
 	// Private Variables //
-		const iVersion = "4.2.7";
+		const iVersion = "4.3.0";
 		private $dbUser = array();
 		private $hdrUser = array();
 		private $dbRes = array();
@@ -473,7 +474,7 @@ class COBList
 			}
 			//check missing Emergency Contact
 			if ($rowData[self::iEmergencyContact] == "") {
-				$this->addError('14','Emergency contact',$rowData[self::iUnit],$rowData[self::iUser1LastName],'No Emergency Contact');
+				$this->addError('19','Emergency contact',$rowData[self::iUnit],$rowData[self::iUser1LastName],'No Emergency Contact');
 			}
 			//check missing email address
 			if ($rowData[self::iEmail] == "" ){
@@ -790,7 +791,7 @@ class COBList
 							if (strlen($temp[1]) == 8) {
 								$tenure = date("Y.m.d",strtotime($temp[1]));
 							} else {
-								$this->addError('20','Slip tenure',$row[self::iUnit],$temp[1],'Slip tenure format YYYYMMDD');
+								$this->addError('7','Slip tenure',$row[self::iUnit],$temp[1],'Slip tenure format YYYYMMDD');
 								$tenure = null;
 							}	
 						} else {	
@@ -799,7 +800,7 @@ class COBList
 								if (preg_match("/[a-f]/", $slip)){
 									$this->addError('21','No Rack tenure',$row[self::iUnit],$slip,'Rack tenure as :YYYYMMDD');
 								} else {
-									$this->addError('20','No Slip tenure',$row[self::iUnit],$slip,'Slip tenure as :YYYYMMDD');
+									$this->addError('14','No Slip tenure',$row[self::iUnit],$slip,'Slip tenure as :YYYYMMDD');
 								}
 							}
 							$tenure = null;
@@ -906,6 +907,16 @@ class COBList
 
 		$this->hdrGridT2 = array("Floor"=>"string","Rembrandt-9"=>"string", "Renoir-10"=>"string", "Renoir-11"=>"string", "Van Gogh-12"=>"string", "Van Gogh-14"=>"string", "Renoir-15"=>"string", "Renoir-16"=>"string", "Rembrandt-17"=>"string");
 
+		// check for units with no Owner
+		$sql = "Select t3.unit, lastname, floor, stack from UnitMaster t3  left join (SELECT unit, lastname FROM UserUnit where owner = 'yes'  group by unit, lastname) t1 on t3.unit = t1.unit where lastname is null and t3.unit != 'Tower 2 # 115' order by floor asc, stack asc;";
+		$query1 = $this->pdo->prepare($sql);
+		$query1->execute();
+		// now loop thru all units w/o owners and error
+		while ($row = $query1->fetch(PDO::FETCH_ASSOC)) {
+			$this->addError('1','Owner Error',$row['unit'],'Unit has no owner','Missing owner');
+		}
+
+		
 		//first do owners
 		$sql = "Select t1.unit, lastname, floor, stack from UnitMaster t3  left join (SELECT unit, lastname FROM UserUnit where owner = 'yes'  group by unit, lastname) t1 on t3.unit = t1.unit order by floor desc, stack asc";
 		$query1 = $this->pdo->prepare($sql);
@@ -1117,7 +1128,7 @@ class COBList
 		$result = $query1->fetchALL(PDO::FETCH_ASSOC);
 		// now loop each row and add error 
 		foreach ($result as $temp) {
-			$this->addError('6','Voter Error',$temp['unit'],'No Voter','Missing voter');
+			$this->addError('18','Voter Error',$temp['unit'],'No Voter','Missing voter');
 		}
 		
 		//now check multiple voters
@@ -1128,7 +1139,7 @@ class COBList
 		// now loop each row and add error if count > 1 
 		foreach ($result as $temp) {
 			if ($temp['COUNT(*)']>1) {
-				$this->addError('6','Voter Error',$temp['unit'],$temp['lastname'],'Multiple voters');
+				$this->addError('18','Voter Error',$temp['unit'],$temp['lastname'],'Multiple voters');
 			}
 		}
 		
@@ -1415,6 +1426,10 @@ class COBList
 				} else {
 					$F = trim(substr($unit, 9, 2));
 				}
+				break;
+			Case 12: //missing space u Tower 1 #708
+				// insert a space
+				$F=substr($unit,0,9) & " " & substr($unit,9,3);
 				break;
 			Case 14:
 				if (strlen($F)>0) {
@@ -1784,6 +1799,12 @@ function GetFullUnit($unit) {
 			Case 13: //full u Tower 1 # 708
 				$F[]=$u;
 				$T = substr($u,0,11);
+				break;
+			Case 12: //missing space u Tower 1 #708
+				$this->addError('1','Unit format',$unit,$u,'Missing space after #');
+				// insert a space
+				$F[]=substr($u,0,9) & " " & substr($u,9,3);
+				$T = substr($u,0,10);
 				break;
 			Case 4: //u only 1801
 				$F[]= substr($T,0,9) . $u;
